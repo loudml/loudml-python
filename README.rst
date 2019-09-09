@@ -8,7 +8,7 @@ In this repository, you'll find all information about the Loud ML Python CLI usa
 
 
 ==============
-What is Loud ML?
+What is the Loud ML CLI?
 ==============
 
 Loud ML helps you to:
