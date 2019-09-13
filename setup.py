@@ -23,7 +23,11 @@ setup(
     author_email='support@loudml.io',
     license='MIT',
     packages=find_packages(),
-    install_requires=['requests'],
+    install_requires=[
+        'requests>=2.14.0',
+        'pyyaml==5.1.2',
+        'tqdm>=4.35.0',
+    ],
     extras_require={'test': ['mock']},
     python_requires='>=2.7, !=3.0.*, !=3.1.*',
     classifiers=[
@@ -42,4 +46,16 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     url='https://github.com/loudml/loudml-python',
+    entry_points={
+        'console_scripts': [
+            'loudml=loudml.cli:main',
+            'loudml-wave=loudml.wave:main',
+        ],
+        'loudml.services': [
+            'buckets=loudml.buckets:BucketService',
+            'models=loudml.models:ModelService',
+            'jobs=loudml.jobs:JobService',
+            'templates=loudml.templates:TemplateService',
+        ],
+    },
 )
