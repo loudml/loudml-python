@@ -559,20 +559,48 @@ class Loud():
             version=version,
         )
 
-    def create_model_version(
+    def model_versions_generator(
         self,
-        model_name,
+        model_name=None,
+        fields=None,
+        include_fields=None,
+        sort='name:1',
     ):
-        return self.models.create_version(
-            model_name=model_name,
-        )
+        global g_pagination_count
+        page = 0
+        while True:
+            found = 0
+            for model in self.get_model_versions(
+                model_name=model_name,
+                fields=fields,
+                include_fields=include_fields,
+                page=page,
+                per_page=g_pagination_count,
+                sort=sort,
+            ):
+                yield model
+                found += 1
+
+            page += 1
+            if not found:
+                break
 
     def get_model_versions(
         self,
         model_name,
+        fields=None,
+        include_fields=None,
+        page=0,
+        per_page=100,
+        sort='name:1',
     ):
         return self.models.get_versions(
             model_name=model_name,
+            fields=fields,
+            include_fields=include_fields,
+            page=page,
+            per_page=per_page,
+            sort=sort,
         )
 
     def template_generator(

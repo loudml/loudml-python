@@ -211,21 +211,6 @@ class ModelService(Service):
             logging.error(response.text)
             return None
 
-    def create_version(
-        self,
-        model_name,
-    ):
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/versions'.format(self._prefix, model_name))
-        )
-        response.raise_for_status()
-        if not response.ok:
-            logging.error(response.text)
-            return None
-
-        return response.json()
-
     def load_version(
         self,
         model_name,
@@ -246,10 +231,25 @@ class ModelService(Service):
     def get_versions(
         self,
         model_name,
+        fields=None,
+        include_fields=None,
+        page=0,
+        per_page=100,
+        sort=None,
     ):
+        params = {
+            'include_fields': bool(include_fields),
+            'page': int(page),
+            'per_page': int(per_page),
+            'sort': sort,
+        }
+        if fields:
+            params['fields'] = ";".join(fields)
+
         response = requests.get(
             self._loud._format_url(
-                '{}/{}/versions'.format(self._prefix, model_name))
+                '{}/{}/versions'.format(self._prefix, model_name),
+                params)
         )
         response.raise_for_status()
         if not response.ok:
