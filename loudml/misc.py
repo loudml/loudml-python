@@ -37,6 +37,14 @@ def parse_constraint(constraint):
     }
 
 
+def _format_float(s):
+    try:
+        _ = float(s)
+        return '{:.3f}'.format(s).rstrip('0')
+    except ValueError:
+        return str(s)
+
+
 def _format_observation(data, i, feature):
     return '{:.3f}'.format(
         data['observed'][feature][i]).rstrip('0')
@@ -108,6 +116,40 @@ def format_points(points):
         ])
         row = list(chain(
             [str(point['timestamp'])], fields, [tags]))
+        rows.append(row)
+
+    col_width = max(
+        len(word) for row in rows for word in row) + 2  # padding
+    for row in rows:
+        yield "".join(
+            word.ljust(col_width) for word in row)
+
+
+def format_model_versions(versions):
+    features = sorted(
+        set([
+            key for ver in versions for key in ver['version'].keys()
+        ]) - set(['name']))
+    states = sorted(
+        set([
+            key for ver in versions for key in ver['state'].keys()
+        ]))
+
+    first_row = list(chain(
+        ['version'], features, states))
+    rows = [first_row]
+    for ver in versions:
+        fields = [
+            _format_float(ver['version'].get(feature))
+            for feature in features
+        ]
+        extras = [
+            _format_float(ver['state'].get(state))
+            for state in states
+        ]
+
+        row = list(chain(
+            [ver['version']['name']], fields, extras))
         rows.append(row)
 
     col_width = max(

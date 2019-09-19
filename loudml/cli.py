@@ -24,6 +24,7 @@ from loudml.misc import (
     parse_constraint,
     parse_addr,
     format_buckets,
+    format_model_versions,
 )
 
 
@@ -126,30 +127,6 @@ class LoadVersionCommand(Command):
         loud.load_model_version(args.model_name, args.version)
 
 
-class SaveVersionCommand(Command):
-    """
-    Save new version
-    """
-    @property
-    def short_name(self):
-        return 'save-model-version'
-
-    def add_args(self, parser):
-        parser.add_argument(
-            'model_name',
-            help="Model name",
-            type=str,
-        )
-
-    def exec(self, args):
-        if not args.version:
-            raise LoudMLException(
-                "'version' argument is required")
-
-        loud = Loud(**self.config)
-        loud.create_model_version(args.model_name)
-
-
 class ListVersionsCommand(Command):
     """
     List versions
@@ -173,16 +150,26 @@ class ListVersionsCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        versions = loud.get_model_versions(args.model_name)
         if args.show_all:
-            print(yaml.dump(versions, indent=2))
+            include_fields = None
+            fields = None
         else:
-            print('\n'.join([
-                '{}{}'.format(
-                    version['name'],
-                    '  [*]' if version.get('active') else '')
-                for version in versions
-            ]))
+            include_fields = True
+            fields = ['state', 'version']
+
+        models = loud.get_model_versions(
+            model_name=args.model_name,
+            fields=fields,
+            include_fields=include_fields,
+        )
+        if not len(models):
+            print('Not found:', args.model_name)
+            exit(1)
+        if args.show_all:
+            print(yaml.dump(models, indent=2))
+        else:
+            for line in format_model_versions(models):
+                print(line)
 
 
 class CreateModelCommand(Command):
@@ -1042,7 +1029,6 @@ g_commands = [
     WriteBucketCommand,
     ClearBucketCommand,
     ListVersionsCommand,
-    SaveVersionCommand,
     LoadVersionCommand,
     CreateModelCommand,
     DeleteModelCommand,
