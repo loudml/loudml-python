@@ -6,6 +6,5 @@ from loudml.api import (
 class TemplateService(Service):
     def __init__(
         self,
-        loud,
     ):
         super().__init__(prefix='/templates')

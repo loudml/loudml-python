@@ -664,9 +664,13 @@ class Loud():
     def create_template(
         self,
         settings,
+        template_name,
     ):
+        params = {
+            'name': template_name,
+        }
         return self.templates.create(
-            settings=settings)
+            settings=settings, options=params)
 
     def job_generator(
         self,

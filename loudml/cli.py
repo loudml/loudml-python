@@ -182,7 +182,7 @@ class CreateModelCommand(Command):
 
     def add_args(self, parser):
         parser.add_argument(
-            '-t', '--template',
+            '-t', '--template-name',
             help="Template name",
             type=str,
         )
@@ -231,7 +231,7 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        if args.template is not None:
+        if args.template_name is not None:
             settings = self._load_model_json(args.model_file)
         else:
             settings = self.load_model_file(args.model_file)
@@ -239,7 +239,64 @@ class CreateModelCommand(Command):
         if args.force and loud.model_exists(settings.get('name')):
             loud.delete_model(settings.get('name'))
 
-        loud.create_model(settings)
+        loud.create_model(
+            settings=settings, template_name=args.template_name)
+
+
+class CreateTemplateCommand(CreateModelCommand):
+    """
+    Create model template
+    """
+    @property
+    def short_name(self):
+        return 'create-model-template'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'template_name',
+            help="Template name",
+            type=str,
+        )
+        parser.add_argument(
+            'model_file',
+            help="Model file",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--force',
+            help="Overwrite if present",
+            action='store_true',
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        settings = self._load_model_json(args.model_file)
+
+        if args.force and loud.template_exists(args.template_name):
+            loud.delete_template(args.template_name)
+
+        loud.create_template(
+            settings, args.template_name)
+
+
+class DeleteTemplateCommand(Command):
+    """
+    Delete a model template
+    """
+    @property
+    def short_name(self):
+        return 'delete-model-template'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'template_name',
+            help="Template model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        loud.delete_template(args.template_name)
 
 
 class ListTemplatesCommand(Command):
@@ -1034,6 +1091,8 @@ g_commands = [
     DeleteModelCommand,
     ListModelsCommand,
     ListTemplatesCommand,
+    CreateTemplateCommand,
+    DeleteTemplateCommand,
     ShowModelCommand,
     TrainCommand,
     PredictCommand,
