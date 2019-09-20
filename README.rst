@@ -1,43 +1,87 @@
-**************
+****************
 Loud ML - Python
-**************
+****************
+
+The Python client interface to the Loud ML model server.
 
 |pypi| |build| |coverage| |license|
-
-In this repository, you'll find all information about the Loud ML Python CLI usage.
-
-
-==============
-What is the Loud ML CLI?
-==============
-
-Loud ML helps you to:
-
-* Create and train deep learning models without TensorFlow headaches.
-* Control data streaming and inference tasks from your databases to Loud ML inference nodes.
-* Persist trained model states and persist model predictions
-* Use unsupervised anomaly detection with time series data
-
-The `loudml-python` CLI connects to a remote Loud ML host to run commands remotely. You may
-run Loud ML instances locally or in your favorite data centers.
 
 ============
 Installation
 ============
 
-You can install the Loud ML Python CLI using the following command.
+loudml-python requires a running Loud ML `model server <https://github.com/regel/loudml>`_ . See `Loud ML's quickstart <https://loudml.io/guide>`_ for installation instructions.
 
-.. code-block::
+loudml-python can be installed using `pip` similar to other Python packages. Do not use `sudo` with `pip`. It is usually good to work in a `virtualenv <https://virtualenv.pypa.io/en/latest/>`_ or `venv <https://docs.python.org/3/library/venv.html>`_ to avoid conflicts with other package managers and Python projects. For a quick introduction see `Python Virtual Environments in Five Minutes <https://bit.ly/py-env>`_.
 
-    pip install loudml-python
+To install loudml-python, simply:
 
-For python3, use the following command
+.. code-block:: bash
 
-.. code-block::
+    $ pip install loudml-python
+
+or from source:
+
+.. code-block:: bash
        
-    pip3 install loudml-python
+    $ python setup.py install
 
-Python 3.2 and 3.3 have reached `EOL <https://en.wikipedia.org/wiki/CPython#Version_history>`_ and support will be removed in the near future.
+
+Getting Started
+---------------
+
+If you’ve installed `loudml-python` locally, the `loudml` command should be available via the command line. Executing loudml will start the CLI and automatically connect to the local Loud ML model server instance (assuming you have already started the server with `systemctl start loudmld` or by running loudmld directly). The output should look like this:
+
+.. code-block:: bash
+
+    $ loudml
+    Connected to http://localhost:8077 version 1.6.0
+    Loud ML shell
+    >
+
+You can get a description of the available commands:
+
+.. code-block:: bash
+
+    > help
+
+Client Classes: Loud and Job
+----------------------------
+
+The main helper in the Python client librery is the `Loud` class. You
+can create an instance that connects to a remote Loud ML model server
+and run queries.
+
+.. code-block:: pycon
+
+    >>> import loudml.api
+    >>> loud = loudml.api.Loud(loudml_host='localhost', loudml_port=8077)
+    >>> models = loud.get_models(
+            model_names=['first_model'],
+            fields=['settings', 'state'],
+            include_fields=True,
+        )
+    >>> len(models)
+    1
+    >>> print(models[0]['state'])
+    {'trained': False}
+
+Long running commands return a `Job` class instance that can be used to
+track the progress of the job or cancel it. `loudml` uses
+`tqdm <https://pypi.org/project/tqdm/>`_ to display progress information.
+
+.. code-block:: pycon
+
+    def cancel_job_handler(*args):
+        job.cancel()
+        print('Signal received. Canceled job: ', job.id)
+        sys.exit()
+
+    signal.signal(signal.SIGINT, cancel_job_handler)
+
+    while not job.done():
+        time.sleep(1)
+        job.fetch()
 
 ==========
 Change Log
@@ -57,6 +101,13 @@ Author
 ======
 
 `Loud ML`_
+
+loudml-python is developed and maintained by Sebastien Leger (@regel).
+It can be found here: https://github.com/loudml/loudml-python
+
+Special thanks to:
+
+* Christophe Osuna (@osunac) for all the review and packaging support.
 
 =======
 License
