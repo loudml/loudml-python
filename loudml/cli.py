@@ -11,6 +11,8 @@ import json
 import logging
 import time
 import math
+import readline  # noqa: must be loaded (shlex requirement)
+import shlex
 from tqdm import tqdm
 import requests.exceptions
 
@@ -49,8 +51,15 @@ def poll_job(job):
 
 
 class Command:
+    """
+    Command base class
+    """
     def __init__(self):
         self._config = None
+
+    @classmethod
+    def description(cls):
+        return cls.__doc__
 
     def set_config(
         self,
@@ -99,9 +108,7 @@ class Command:
 
 
 class LoadVersionCommand(Command):
-    """
-    Load version
-    """
+    """Restore trained model version."""
     @property
     def short_name(self):
         return 'load-model-version'
@@ -128,9 +135,7 @@ class LoadVersionCommand(Command):
 
 
 class ListVersionsCommand(Command):
-    """
-    List versions
-    """
+    """List trained model versions and state."""
     @property
     def short_name(self):
         return 'list-model-versions'
@@ -173,9 +178,7 @@ class ListVersionsCommand(Command):
 
 
 class CreateModelCommand(Command):
-    """
-    Create model
-    """
+    """Create a new model."""
     @property
     def short_name(self):
         return 'create-model'
@@ -244,9 +247,7 @@ class CreateModelCommand(Command):
 
 
 class CreateTemplateCommand(CreateModelCommand):
-    """
-    Create model template
-    """
+    """Create a new model template."""
     @property
     def short_name(self):
         return 'create-model-template'
@@ -280,9 +281,7 @@ class CreateTemplateCommand(CreateModelCommand):
 
 
 class DeleteTemplateCommand(Command):
-    """
-    Delete a model template
-    """
+    """Delete a model template."""
     @property
     def short_name(self):
         return 'delete-model-template'
@@ -300,9 +299,7 @@ class DeleteTemplateCommand(Command):
 
 
 class ListTemplatesCommand(Command):
-    """
-    List templates
-    """
+    """List configured model templates."""
     @property
     def short_name(self):
         return 'list-model-templates'
@@ -326,9 +323,7 @@ class ListTemplatesCommand(Command):
 
 
 class ListJobsCommand(Command):
-    """
-    List jobs
-    """
+    """List jobs and query their status."""
     @property
     def short_name(self):
         return 'list-jobs'
@@ -352,9 +347,7 @@ class ListJobsCommand(Command):
 
 
 class CancelJobCommand(Command):
-    """
-    Cancel a job
-    """
+    """Cancel a job."""
     @property
     def short_name(self):
         return 'cancel-job'
@@ -373,9 +366,7 @@ class CancelJobCommand(Command):
 
 
 class CreateBucketCommand(Command):
-    """
-    Create bucket
-    """
+    """Create a new bucket."""
     @property
     def short_name(self):
         return 'create-bucket'
@@ -438,9 +429,7 @@ class CreateBucketCommand(Command):
 
 
 class ListBucketsCommand(Command):
-    """
-    List buckets
-    """
+    """List configured buckets."""
     @property
     def short_name(self):
         return 'list-buckets'
@@ -472,9 +461,7 @@ class ListBucketsCommand(Command):
 
 
 class DeleteBucketCommand(Command):
-    """
-    Delete a bucket
-    """
+    """Delete a bucket"""
     @property
     def short_name(self):
         return 'delete-bucket'
@@ -492,9 +479,7 @@ class DeleteBucketCommand(Command):
 
 
 class ShowBucketCommand(Command):
-    """
-    Show bucket info
-    """
+    """Show bucket settings"""
     @property
     def short_name(self):
         return 'show-bucket'
@@ -519,9 +504,7 @@ class ShowBucketCommand(Command):
 
 
 class ReadBucketCommand(Command):
-    """
-    Reads data from a bucket
-    """
+    """Reads data from a bucket"""
     @property
     def short_name(self):
         return 'read-bucket'
@@ -590,9 +573,7 @@ class ReadBucketCommand(Command):
 
 
 class WriteBucketCommand(Command):
-    """
-    Writes data points to a bucket
-    """
+    """Writes data points to a bucket"""
     @property
     def short_name(self):
         return 'write-bucket'
@@ -643,9 +624,7 @@ class WriteBucketCommand(Command):
 
 
 class ClearBucketCommand(Command):
-    """
-    Deletes all data points in the given bucket
-    """
+    """Deletes all data points in the given bucket."""
     @property
     def short_name(self):
         return 'clear-bucket'
@@ -665,9 +644,7 @@ class ClearBucketCommand(Command):
 
 
 class ListModelsCommand(Command):
-    """
-    List models
-    """
+    """List configured models."""
     @property
     def short_name(self):
         return 'list-models'
@@ -699,9 +676,7 @@ class ListModelsCommand(Command):
 
 
 class DeleteModelCommand(Command):
-    """
-    Delete a model
-    """
+    """Delete a model"""
     @property
     def short_name(self):
         return 'delete-model'
@@ -719,9 +694,7 @@ class DeleteModelCommand(Command):
 
 
 class ShowModelCommand(Command):
-    """
-    Show model info
-    """
+    """Show model settings and internal state."""
     @property
     def short_name(self):
         return 'show-model'
@@ -761,9 +734,7 @@ class ShowModelCommand(Command):
 
 
 class PlotCommand(Command):
-    """
-    Plot model latent space on data set
-    """
+    """Plot model latent space dimensions."""
     @property
     def short_name(self):
         return 'plot-model'
@@ -816,9 +787,7 @@ class PlotCommand(Command):
 
 
 class TrainCommand(Command):
-    """
-    Train model on data set
-    """
+    """Train a model using data points in the given time range."""
     @property
     def short_name(self):
         return 'train-model'
@@ -905,9 +874,7 @@ class TrainCommand(Command):
 
 
 class ForecastCommand(Command):
-    """
-    Forecast the next measurements
-    """
+    """Get forecast data points using a trained model."""
     @property
     def short_name(self):
         return 'forecast-model'
@@ -997,9 +964,7 @@ class ForecastCommand(Command):
 
 
 class PredictCommand(Command):
-    """
-    Ask model for a prediction
-    """
+    """Get output data points from a trained model."""
     @property
     def short_name(self):
         return 'predict-model'
@@ -1077,6 +1042,42 @@ class PredictCommand(Command):
                     print(line)
 
 
+class ShowVersionCommand(Command):
+    """Print Loud ML model server version."""
+    @property
+    def short_name(self):
+        return 'version'
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        print(loud.version())
+
+
+class HelpCommand(Command):
+    """Show this help message."""
+    @property
+    def short_name(self):
+        return 'help'
+
+    def exec(self, args):
+        global g_commands
+        for command in g_commands:
+            cmd = command()
+            print('   {:<22}: {}'.format(
+                cmd.short_name, command.description()))
+        print()
+
+
+class QuitCommand(Command):
+    """Quit this shell."""
+    @property
+    def short_name(self):
+        return 'quit'
+
+    def exec(self, args):
+        raise SystemExit()
+
+
 g_commands = [
     CreateBucketCommand,
     DeleteBucketCommand,
@@ -1098,22 +1099,60 @@ g_commands = [
     PredictCommand,
     ForecastCommand,
     PlotCommand,
+    ShowVersionCommand,
+    HelpCommand,
+    QuitCommand,
 ]
+
+
+def cmd_gen(args):
+    if args.version:
+        yield 'version'
+    elif args.execute:
+        yield args.execute
+    else:
+        res = parse_addr(args.addr, default_port=8077)
+        config = {
+            'loudml_host': res['host'],
+            'loudml_port': res['port'],
+        }
+        loud = Loud(**config)
+        print('Connected to {} version {}'.format(
+            args.addr, loud.version()))
+        print('Loud ML shell')
+        while True:
+            r = input('> ').strip()
+            if len(r):
+                yield r
 
 
 def main(argv=None):
     """
-    Loud ML command-line tool
+    The Python client interface to Loud ML model servers.
     """
     global g_commands
 
+    epilog = """
+
+Examples:
+
+    # Use loudml in a non-interactive mode to output the two days forecast
+    # for model "test-model" and pretty print the output:
+    $ loudml --execute 'forecast-model -f now -t now+2d test-model'
+
+    # Connect to a specific Loud ML model server:
+    $ loudml --addr hostname:8077
+
+"""
+
     parser = argparse.ArgumentParser(
         description=main.__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=epilog,
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         '-A', '--addr',
-        help="Loud ML remote server address",
+        help="Loud ML model server host and port to connect to.",
         type=str,
         default="localhost:8077",
     )
@@ -1122,46 +1161,65 @@ def main(argv=None):
         action='store_true',
         help="Quiet: no stdout",
     )
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help="Display the version and exit.",
+    )
+    parser.add_argument(
+        '-e', '--execute',
+        type=str,
+        help="Execute command and quit.",
+    )
 
-    subparsers = parser.add_subparsers(
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    args = parser.parse_args(argv)
+
+    shell_parser = argparse.ArgumentParser(
+        add_help=False, usage=argparse.SUPPRESS)
+    subparsers = shell_parser.add_subparsers(
         title="Commands",
         dest="command",
     )
-
     for cmd in g_commands:
         command = cmd()
         subparser = subparsers.add_parser(
-            command.short_name)
+            command.short_name, add_help=False)
         command.add_args(subparser)
         subparser.set_defaults(set_config=command.set_config)
         subparser.set_defaults(exec=command.exec)
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    args = parser.parse_args(argv)
-
-    if args.command is None:
-        parser.print_help()
-        return 1
-
     try:
-        args.set_config(addr=args.addr, quiet=args.quiet)
-        try:
-            args.exec(args)
-            return 0
-        except requests.exceptions.ConnectionError:
-            logging.error("%s: connect: connection refused", args.addr)
-            logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
-            sys.exit(2)
-        except requests.exceptions.HTTPError as exn:
-            logging.error(str(exn))
-        except requests.exceptions.Timeout:
-            logging.error("Request timed out")
-        except requests.exceptions.TooManyRedirects:
-            logging.error("Too many redirects")
-        except requests.exceptions.RequestException as exn:
-            logging.error(str(exn))
+        for user_input in cmd_gen(args):
+            exit_code = 1
+            try:
+                shell_args = shell_parser.parse_args(
+                    shlex.split(user_input))
+                shell_args.set_config(
+                    addr=args.addr, quiet=args.quiet)
+            except SystemExit:  # Unknown commands. Raised by parse_args()
+                if user_input == 'quit':
+                    sys.exit(0)
+                continue
+
+            try:
+                shell_args.exec(shell_args)
+                exit_code = 0
+            except requests.exceptions.ConnectionError:
+                logging.error("%s: connect: connection refused", args.addr)
+                logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
+                sys.exit(2)
+            except requests.exceptions.HTTPError as exn:
+                logging.error(str(exn))
+            except requests.exceptions.Timeout:
+                logging.error("Request timed out")
+            except requests.exceptions.TooManyRedirects:
+                logging.error("Too many redirects")
+            except requests.exceptions.RequestException as exn:
+                logging.error(str(exn))
+
+        return exit_code  # All input is consumed
     except LoudMLException as exn:
         logging.error(exn)
     except KeyboardInterrupt:
