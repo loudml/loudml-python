@@ -75,7 +75,7 @@ class Command:
     def config(self):
         if self._config is None:
             self._config = {
-                'loudml_host': '127.0.0.1',
+                'loudml_host': 'localhost',
                 'loudml_port': 8077,
             }
         return self._config
@@ -1115,7 +1115,7 @@ def main(argv=None):
         '-A', '--addr',
         help="Loud ML remote server address",
         type=str,
-        default="127.0.0.1:8077",
+        default="localhost:8077",
     )
     parser.add_argument(
         '-q', '--quiet',
