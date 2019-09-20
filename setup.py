@@ -7,7 +7,7 @@ def find_version():
     if 'LOUDML_PYTHON_VERSION' in os.environ:
         return os.environ['LOUDML_PYTHON_VERSION']
     else:
-        raise RuntimeError("Unable to find version string.")
+        return '0.0.0'
 
 
 with io.open('README.rst', encoding='utf-8') as f:
