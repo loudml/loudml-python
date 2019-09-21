@@ -83,6 +83,34 @@ track the progress of the job or cancel it. `loudml` uses
         time.sleep(1)
         job.fetch()
 
+Data generator: loudml-wave
+---------------------------
+
+The `loudml-wave` tool is included in this package. You can use the
+application to output time series data with a given pattern and write
+the data to a bucket.
+
+The output should look like this:
+
+.. code-block:: bash
+
+    $ loudml-wave -v -f now-1h -t now --shape sin --tags tag_one:foo,tag_two:bar output_bucket
+    INFO:root:generating data from 2019-09-21 07:23:51.350293 to 2019-09-21 08:23:51.350316
+    Connected to localhost:8077 version 1.5.0.88.g5ad0216
+    INFO:root:writing 131 points
+    timestamp                value                    tags                     
+    1569043431.35            38369.884                tag_one=foo,tag_two=bar  
+    1569043431.85            70881.022                tag_one=foo,tag_two=bar  
+    1569043491.35            33949.816                tag_one=foo,tag_two=bar  
+    1569043551.35            30892.148                tag_one=foo,tag_two=bar  
+    1569043551.6833332       10851.922                tag_one=foo,tag_two=bar 
+
+You can get a description of the available commands:
+
+.. code-block:: bash
+
+    $ loudml-wave -h
+
 ==========
 Change Log
 ==========
