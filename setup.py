@@ -27,6 +27,8 @@ setup(
         'requests>=2.14.0',
         'pyyaml==5.1.2',
         'tqdm>=4.35.0',
+        'pytz>=2019.2',
+        'dateutils>=0.6.6',
     ],
     extras_require={'test': ['mock']},
     python_requires='>=2.7, !=3.0.*, !=3.1.*',

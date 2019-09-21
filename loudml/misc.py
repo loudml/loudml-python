@@ -5,6 +5,8 @@ from itertools import chain
 from loudml import (
     errors,
 )
+import datetime
+import dateutil.parser
 
 
 def parse_addr(addr, default_port=None):
@@ -35,6 +37,129 @@ def parse_constraint(constraint):
         'type': _type,
         'threshold': threshold,
     }
+
+
+def parse_timedelta(
+    delta,
+    min=None,
+    max=None,
+    min_included=True,
+    max_included=True,
+):
+    """
+    Parse time delta
+    """
+
+    if isinstance(delta, str) and len(delta) > 0:
+        unit = delta[-1]
+
+        if unit in '0123456789':
+            unit = 's'
+            value = delta
+        else:
+            value = delta[:-1]
+    else:
+        unit = 's'
+        value = delta
+
+    try:
+        value = float(value)
+    except ValueError:
+        raise errors.Invalid("invalid time delta value")
+
+    if unit == 'M':
+        value *= 30
+        unit = 'd'
+    elif unit == 'y':
+        value *= 365
+        unit = 'd'
+
+    unit = {
+        's': 'seconds',
+        'm': 'minutes',
+        'h': 'hours',
+        'd': 'days',
+        'w': 'weeks',
+    }.get(unit)
+
+    if unit is None:
+        raise errors.Invalid("invalid time delta unit")
+
+    message = "time delta must be {} {} seconds"
+
+    if min is not None:
+        if min_included:
+            if value < min:
+                raise errors.Invalid(message.format(">=", min))
+        else:
+            if value <= min:
+                raise errors.Invalid(message.format(">", min))
+
+    if max is not None:
+        if max_included:
+            if value > max:
+                raise errors.Invalid(message.format("<=", max))
+        else:
+            if value >= max:
+                raise errors.Invalid(message.format("<", max))
+
+    return datetime.timedelta(**{unit: value})
+
+
+def ts_to_datetime(ts):
+    """
+    Convert timestamp to datetime
+    """
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+
+
+def ts_to_str(ts):
+    """
+    Convert timestamp to string
+    """
+    return datetime_to_str(ts_to_datetime(ts))
+
+
+def str_to_datetime(string):
+    """
+    Convert string (ISO or relative) to timestamp
+    """
+    if string.startswith("now"):
+        now = datetime.datetime.now()
+        if len(string) == 3:
+            return now
+        return now + parse_timedelta(string[3:])
+    else:
+        return dateutil.parser.parse(string)
+
+
+def str_to_ts(string):
+    """
+    Convert string to timestamp
+    """
+    return str_to_datetime(string).timestamp()
+
+
+def datetime_to_str(dt):
+    """
+    Convert datetime to string
+    """
+    return "%s.%03dZ" % (
+        dt.strftime("%Y-%m-%dT%H:%M:%S"), dt.microsecond / 1000)
+
+
+def make_datetime(mixed):
+    """
+    Build a datetime object from a mixed input (second timestamp or string)
+    """
+
+    try:
+        return ts_to_datetime(float(mixed))
+    except ValueError as exn:
+        if isinstance(mixed, str):
+            return str_to_datetime(mixed)
+        else:
+            raise exn
 
 
 def _format_float(s):
@@ -99,7 +224,7 @@ def format_buckets(data):
 def format_points(points):
     features = sorted(
         set([
-            point.keys() for point in points
+            field for point in points for field in point.keys()
         ]) - set(['timestamp', 'tags']))
 
     first_row = list(chain(
@@ -107,7 +232,7 @@ def format_points(points):
     rows = [first_row]
     for point in points:
         fields = [
-            point.get(feature)
+            _format_float(point.get(feature))
             for feature in features
         ]
         tags = ",".join([

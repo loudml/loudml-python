@@ -2,6 +2,8 @@ import argparse
 import logging
 import random
 import time
+import requests
+import sys
 
 from loudml.randevents import (
     CamelEventGenerator,
@@ -22,6 +24,12 @@ from loudml.misc import (
     parse_addr,
     format_points,
 )
+
+
+def poll_job(job):
+    while not job.done():
+        time.sleep(0.1)
+        job.fetch()
 
 
 def generate_data(
@@ -66,13 +74,27 @@ def build_tag_dict(tags=None):
     return tag_dict
 
 
+def write_points(loud, bucket_name, points, verbose):
+    logging.info(
+        "writing %d points", len(points))
+    if verbose:
+        for line in format_points(points):
+            print(line)
+    for job in loud.write_bucket(
+        bucket_name=bucket_name,
+        points=points,
+        batch_size=len(points),
+    ):
+        poll_job(job)
+
+
 def dump_to_bucket(
     loud,
     generator,
     bucket_name,
     tags=None,
     verbose=False,
-    **kwargs
+    batch_size=10000,
 ):
     points = []
     for ts, point in generator:
@@ -84,50 +106,32 @@ def dump_to_bucket(
         if tags:
             point['tags'] = tags
         points.append(point)
-        if len(points) >= 1000:
-            logging.info(
-                "writing %d points", len(points))
-            if verbose:
-                for line in format_points(points):
-                    print(line)
-            loud.write_bucket(
-                bucket_name=bucket_name,
-                points=points,
-                **kwargs
-            )
+        if len(points) >= batch_size:
+            write_points(
+                loud, bucket_name, points, verbose)
             points.clear()
 
     if len(points):
-        loud.write_bucket(
-            bucket_name=bucket_name,
-            points=points,
-            **kwargs
-        )
-        if verbose:
-            for line in format_points(points):
-                print(line)
-        points.clear()
+        write_points(loud, bucket_name, points, verbose)
 
 
 def main():
     """
-    Generate random data and write to TSDB
+    Generate and write random data to a TSDB bucket
     """
-
     parser = argparse.ArgumentParser(
         description=main.__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         'bucket_name',
-        help="Output bucket name",
+        help="Output bucket to write to.",
         type=str,
     )
     parser.add_argument(
         '-A', '--addr',
-        help="Loud ML remote server address",
+        help="Loud ML model server host and port to connect to.",
         type=str,
-        default="127.0.0.1:8077",
+        default="localhost:8077",
     )
     parser.add_argument(
         '-v', '--verbose',
@@ -136,31 +140,20 @@ def main():
     )
 
     parser.add_argument(
-        '-m', '--measurement',
-        help="Measurement",
-        type=str,
-        default='wave',
-    )
-    parser.add_argument(
-        '--doc-type',
-        help="Document type",
-        type=str,
-    )
-    parser.add_argument(
         '--field',
-        help="Field",
+        help="Use field name (default=value) in generated data.",
         type=str,
         default="value",
     )
     parser.add_argument(
-        '--from',
+        '-f', '--from',
         help="From date",
         type=str,
         default="now-7d",
         dest='from_date',
     )
     parser.add_argument(
-        '--to',
+        '-t', '--to',
         help="To date",
         type=str,
         default="now",
@@ -168,7 +161,7 @@ def main():
     )
     parser.add_argument(
         '--shape',
-        help="Data shape",
+        help="Configure the data shape of count(field) aggregation.",
         choices=[
             'flat',
             'saw',
@@ -199,19 +192,19 @@ def main():
     )
     parser.add_argument(
         '--period',
-        help="Period in seconds",
+        help="Pattern period in seconds.",
         type=float,
         default=24 * 3600,
     )
     parser.add_argument(
         '--sigma',
-        help="Sigma",
+        help="Noise sigma added to generated data.",
         type=float,
         default=2,
     )
     parser.add_argument(
         '--step-ms',
-        help="Milliseconds elapsed in each step fo generating samples",
+        help="Milliseconds elapsed in each step for generating samples",
         type=int,
         default=60000,
     )
@@ -235,7 +228,7 @@ def main():
     )
     parser.add_argument(
         '--tags',
-        help="Tags",
+        help="List of comma separated key:value tag pairs.",
         type=str,
     )
 
@@ -248,15 +241,6 @@ def main():
         loudml_host=addr['host'],
         loudml_port=addr['port'],
     )
-
-    tags = build_tag_dict(args.tags)
-
-    try:
-        if args.clear:
-            loud.clear_bucket(args.bucket_name)
-    except LoudMLException as exn:
-        logging.error(exn)
-        return 1
 
     if args.shape == 'flat':
         ts_generator = FlatEventGenerator(base=args.base, trend=args.trend)
@@ -310,20 +294,37 @@ def main():
         args.field,
     )
 
-    kwargs = {}
-    if args.measurement:
-        kwargs['measurement'] = args.measurement
-    if args.doc_type:
-        kwargs['doc_type'] = args.doc_type
-
     try:
+        if args.verbose:
+            print('Connected to {} version {}'.format(
+                args.addr, loud.version()))
+
+        if args.clear:
+            loud.clear_bucket(args.bucket_name)
+
         dump_to_bucket(
             loud,
             generator,
             args.bucket_name,
-            tags=tags,
+            tags=build_tag_dict(args.tags),
             verbose=args.verbose,
-            **kwargs
         )
+        return 0
+    except requests.exceptions.ConnectionError:
+        logging.error("%s: connect: connection refused", args.addr)
+        logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
+        sys.exit(2)
+    except requests.exceptions.HTTPError as exn:
+        logging.error(str(exn))
+    except requests.exceptions.Timeout:
+        logging.error("Request timed out")
+    except requests.exceptions.TooManyRedirects:
+        logging.error("Too many redirects")
+    except requests.exceptions.RequestException as exn:
+        logging.error(str(exn))
     except LoudMLException as exn:
         logging.error(exn)
+    except KeyboardInterrupt:
+        logging.error("operation aborted")
+
+    return 1
