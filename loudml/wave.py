@@ -22,14 +22,7 @@ from loudml.api import (
 from loudml.misc import (
     make_datetime,
     parse_addr,
-    format_points,
 )
-
-
-def poll_job(job):
-    while not job.done():
-        time.sleep(0.1)
-        job.fetch()
 
 
 def generate_data(
@@ -74,20 +67,6 @@ def build_tag_dict(tags=None):
     return tag_dict
 
 
-def write_points(loud, bucket_name, points, verbose):
-    logging.info(
-        "writing %d points", len(points))
-    if verbose:
-        for line in format_points(points):
-            print(line)
-    for job in loud.write_bucket(
-        bucket_name=bucket_name,
-        points=points,
-        batch_size=len(points),
-    ):
-        poll_job(job)
-
-
 def dump_to_bucket(
     loud,
     generator,
@@ -107,12 +86,12 @@ def dump_to_bucket(
             point['tags'] = tags
         points.append(point)
         if len(points) >= batch_size:
-            write_points(
-                loud, bucket_name, points, verbose)
+            loud.write_points(
+                bucket_name, points, verbose)
             points.clear()
 
     if len(points):
-        write_points(loud, bucket_name, points, verbose)
+        loud.write_points(bucket_name, points, verbose)
 
 
 def main():

@@ -25,9 +25,11 @@ from loudml.errors import (
 from loudml.misc import (
     parse_constraint,
     parse_addr,
+    format_jobs,
     format_buckets,
     format_model_versions,
 )
+from loudml.nab import load_nab
 
 
 def poll_job(job):
@@ -47,6 +49,8 @@ def poll_job(job):
         t.update(new_step - last_step)
         last_step = new_step
         if job.done():
+            if job.error:
+                tqdm.write(job.error)
             return
 
 
@@ -328,13 +332,6 @@ class ListJobsCommand(Command):
     def short_name(self):
         return 'list-jobs'
 
-    def add_args(self, parser):
-        parser.add_argument(
-            '-i', '--interactive',
-            help="Keep polling interactive job status",
-            action='store_true',
-        )
-
     def exec(self, args):
         loud = Loud(**self.config)
         jobs = list(
@@ -343,7 +340,8 @@ class ListJobsCommand(Command):
                 include_fields=False,
             )
         )
-        print(jobs)
+        for line in format_jobs(jobs):
+            print(line)
 
 
 class CancelJobCommand(Command):
@@ -821,6 +819,7 @@ class TrainCommand(Command):
             '-m', '--max-evals',
             help="Maximum number of training iterations",
             type=int,
+            default=10,
         )
         parser.add_argument(
             '-e', '--epochs',
@@ -1042,6 +1041,41 @@ class PredictCommand(Command):
                     print(line)
 
 
+class LoadNabCommand(Command):
+    """Load the NUMENTA data set."""
+    @property
+    def short_name(self):
+        return 'load-nab'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'bucket_name',
+            help="Output bucket name",
+            type=str,
+        )
+        parser.add_argument(
+            '-b', '--batch-size',
+            help="Write data in batches",
+            type=int,
+            default=1000,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+            default='now-30d',
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        load_nab(
+            loud=loud,
+            bucket_name=args.bucket_name,
+            batch_size=args.batch_size,
+            from_date=args.from_date)
+
+
 class ShowVersionCommand(Command):
     """Print Loud ML model server version."""
     @property
@@ -1099,6 +1133,9 @@ g_commands = [
     PredictCommand,
     ForecastCommand,
     PlotCommand,
+    ListJobsCommand,
+    CancelJobCommand,
+    LoadNabCommand,
     ShowVersionCommand,
     HelpCommand,
     QuitCommand,
@@ -1116,10 +1153,16 @@ def cmd_gen(args):
             'loudml_host': res['host'],
             'loudml_port': res['port'],
         }
-        loud = Loud(**config)
-        print('Connected to {} version {}'.format(
-            args.addr, loud.version()))
-        print('Loud ML shell')
+        try:
+            loud = Loud(**config)
+            print('Connected to {} version {}'.format(
+                args.addr, loud.version()))
+            print('Loud ML shell')
+        except requests.exceptions.ConnectionError:
+            logging.error("%s: connect: connection refused", args.addr)
+            logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
+            sys.exit(2)
+
         while True:
             r = input('> ').strip()
             if len(r):

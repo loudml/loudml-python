@@ -1,10 +1,14 @@
 import pkg_resources
 import logging
 import requests
+import time
 
 from urllib.parse import (
     urlencode,
     quote,
+)
+from loudml.misc import (
+    format_points,
 )
 
 
@@ -34,7 +38,7 @@ class Job():
         job_id,
         loud,
         name=None,
-        total=0,
+        total=1,
     ):
         self.id = job_id
         self._state = None
@@ -42,8 +46,30 @@ class Job():
         self._progress = None
         self._total = int(total)
         self._name = name
+        self._tqdm = None
         self.jobs = Factory.load('jobs')
         self.jobs.set_loudml_target(loud)
+
+    @classmethod
+    def fetch_all(cls, loud, jobs):
+        if not len(jobs):
+            return
+        statuses = loud.jobs.get(
+            names=[job.id for job in jobs],
+            include_fields=False,
+            fields=['result'],
+        )
+        for status, job in zip(statuses, jobs):
+            old_step = job.step
+            job._state = status['state']
+            job._error = status.get('error')
+            job._progress = status.get('progress')
+            job._remaining_time = status.get('remaining_time')
+            if not job.done():
+                job.reset_total()
+            new_step = job.step
+            if job._tqdm and new_step != old_step:
+                job._tqdm.update(new_step - old_step)
 
     def fetch_result(self):
         jobs = self.jobs.get(
@@ -80,9 +106,34 @@ class Job():
     def done(self):
         return self._state in ['done', 'failed', 'canceled']
 
+    def set_tqdm(self, t):
+        self._tqdm = t
+
+    def reset_total(self):
+        if not self._tqdm:
+            return
+        info = self._progress
+        if not info:
+            self._tqdm.reset(total=1)
+        else:
+            self._total = int(info['max_evals'])
+            self._tqdm.reset(total=self._total)
+
     @property
     def name(self):
         return self._name
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def error(self):
+        return self._error
+
+    @property
+    def tqdm(self):
+        return self._tqdm
 
     @property
     def total(self):
@@ -92,7 +143,10 @@ class Job():
     def step(self):
         info = self._progress
         if not info:
-            return 0
+            if self.done():
+                return 1
+            else:
+                return 0
         else:
             return min(self._total, int(info['eval']))
 
@@ -736,3 +790,18 @@ class Loud():
     ):
         return self.jobs.cancel_many(
             names=job_names)
+
+    def write_points(
+        self, bucket_name, points, verbose=False, interval=1
+    ):
+        if verbose:
+            for line in format_points(points):
+                print(line)
+        for job in self.write_bucket(
+            bucket_name=bucket_name,
+            points=points,
+            batch_size=len(points),
+        ):
+            while not job.done():
+                time.sleep(interval)
+                job.fetch()
