@@ -183,6 +183,8 @@ def _format_float(s):
 
 
 def _format_observation(data, i, feature):
+    if not data['observed'][feature][i]:  # None
+        return 'None'
     return '{:.3f}'.format(
         data['observed'][feature][i]).rstrip('0')
 
