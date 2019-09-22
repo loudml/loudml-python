@@ -162,6 +162,18 @@ def make_datetime(mixed):
             raise exn
 
 
+def make_ts(mixed):
+    """
+    Build a timestamp from a mixed input
+        (second timestamp or ISO string or relative time)
+    """
+
+    try:
+        return float(mixed)
+    except ValueError:
+        return str_to_ts(mixed)
+
+
 def _format_float(s):
     try:
         _ = float(s)
@@ -282,3 +294,44 @@ def format_model_versions(versions):
     for row in rows:
         yield "".join(
             word.ljust(col_width) for word in row)
+
+
+def format_jobs(jobs):
+    features = [
+        'id', 'name', 'state', 'x/N', 'time_left', 'duration']
+    first_row = features
+    rows = [first_row]
+    for job in jobs:
+        job_name = '{}({})'.format(
+            job.get('type'), job.get('model'))
+        job_state = job.get('state')
+        if 'progress' in job:
+            eval_count = int(job['progress']['eval'])
+            eval_total = int(job['progress']['max_evals'])
+            if eval_count > eval_total:
+                eval_count = eval_total
+            job_progress = '{}/{}'.format(
+                eval_count, eval_total)
+        else:
+            job_progress = ''
+        if 'remaining_time' in job:
+            time_left = _format_float(job['remaining_time'])
+        else:
+            time_left = ''
+        row = [
+            job['id'],
+            job_name,
+            job_state,
+            job_progress,
+            time_left,
+            _format_float(job.get('duration', '')),
+        ]
+        rows.append(row)
+
+    col_width = [
+        max(len(row[i]) for row in rows) + 2
+        for i, _ in enumerate(first_row)
+    ]
+    for row in rows:
+        yield "".join(
+            word.ljust(col_width[i]) for i, word in enumerate(row))
