@@ -48,7 +48,7 @@ You can get a description of the available commands:
 Client Classes: Loud and Job
 ----------------------------
 
-The main helper in the Python client librery is the `Loud` class. You
+The main helper in the Python client library is the `Loud` class. You
 can create an instance that connects to a remote Loud ML model server
 and run queries.
 
