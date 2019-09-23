@@ -691,6 +691,45 @@ class DeleteModelCommand(Command):
         loud.delete_model(args.model_name)
 
 
+class StartModelCommand(Command):
+    """Start periodic inference for selected model"""
+    @property
+    def short_name(self):
+        return 'start-model'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        loud.start_inference(
+            model_names=[args.model_name],
+            save_output_data=True,
+            flag_abnormal_data=True)
+
+
+class StopModelCommand(Command):
+    """Stop periodic inference for selected model"""
+    @property
+    def short_name(self):
+        return 'stop-model'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        loud.stop_inference(model_names=[args.model_name])
+
+
 class ShowModelCommand(Command):
     """Show model settings and internal state."""
     @property
@@ -1125,6 +1164,8 @@ g_commands = [
     CreateModelCommand,
     DeleteModelCommand,
     ListModelsCommand,
+    StartModelCommand,
+    StopModelCommand,
     ListTemplatesCommand,
     CreateTemplateCommand,
     DeleteTemplateCommand,
