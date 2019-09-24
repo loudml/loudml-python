@@ -94,7 +94,7 @@ class ModelService(Service):
             logging.error(response.text)
             return None
 
-    def predict_one(
+    def eval_one(
         self,
         model_name,
         from_date,
@@ -128,7 +128,7 @@ class ModelService(Service):
             return Job(
                 job_id,
                 self._loud,
-                name='predict({})'.format(model_name),
+                name='eval({})'.format(model_name),
                 total=1,
             )
         else:

@@ -1116,11 +1116,11 @@ class ForecastCommand(Command):
                     print(line)
 
 
-class PredictCommand(Command):
-    """Get output data points from a trained model."""
+class EvalModelCommand(Command):
+    """Get output data points and loss evaluation from a trained model."""
     @property
     def short_name(self):
-        return 'predict-model'
+        return 'eval-model'
 
     def add_args(self, parser):
         parser.add_argument(
@@ -1176,7 +1176,7 @@ class PredictCommand(Command):
                 "'to' argument is required")
 
         loud = Loud(**self.config)
-        job = loud.predict_model(
+        job = loud.eval_model(
             model_name=args.model_name,
             input_bucket=args.input,
             output_bucket=args.output if args.save else None,
@@ -1286,7 +1286,7 @@ g_commands = [
     DeleteTemplateCommand,
     ShowModelCommand,
     TrainCommand,
-    PredictCommand,
+    EvalModelCommand,
     ForecastCommand,
     PlotCommand,
     ListJobsCommand,
