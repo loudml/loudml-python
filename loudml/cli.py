@@ -110,6 +110,25 @@ class Command:
         Execute command
         """
 
+    def _load_json(self, path):
+        """
+        Load  JSON
+        """
+        with open(path) as _file:
+            return json.load(_file)
+
+    def _load_yaml(self, path):
+        """
+        Load  YAML
+        """
+        try:
+            with open(path) as _file:
+                return yaml.safe_load(_file)
+        except OSError as exn:
+            raise LoudMLException(exn)
+        except yaml.YAMLError as exn:
+            raise LoudMLException(exn)
+
 
 class LoadVersionCommand(Command):
     """Restore trained model version."""
@@ -208,20 +227,13 @@ class CreateModelCommand(Command):
         """
         Load model JSON
         """
-        with open(path) as model_file:
-            return json.load(model_file)
+        return self._load_json(path)
 
     def _load_model_yaml(self, path):
         """
-        Load model JSON
+        Load model YAML
         """
-        try:
-            with open(path) as model_file:
-                return yaml.load(model_file)
-        except OSError as exn:
-            raise LoudMLException(exn)
-        except yaml.YAMLError as exn:
-            raise LoudMLException(exn)
+        return self._load_yaml(path)
 
     def load_model_file(self, path):
         """
@@ -363,6 +375,109 @@ class CancelJobCommand(Command):
             job_names=[args.job_id])
 
 
+class CreateScheduledJobCommand(Command):
+    """Create a new scheduled_job."""
+    @property
+    def short_name(self):
+        return 'create-scheduled-job'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'scheduled_job_file',
+            help="ScheduledJob file",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--force',
+            help="Overwrite if present",
+            action='store_true',
+        )
+
+    def _load_scheduled_job_json(self, path):
+        """
+        Load scheduled_job JSON
+        """
+        return self._load_json(path)
+
+    def _load_scheduled_job_yaml(self, path):
+        """
+        Load scheduled_job YAML
+        """
+        return self._load_yaml(path)
+
+    def load_scheduled_job_file(self, path):
+        """
+        Load scheduled_job file
+        """
+        _, ext = os.path.splitext(path)
+        if ext in [".yaml", ".yml"]:
+            settings = self._load_scheduled_job_yaml(path)
+        else:
+            settings = self._load_scheduled_job_json(path)
+
+        return settings
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        settings = self.load_scheduled_job_file(args.scheduled_job_file)
+
+        if args.force and loud.scheduled_job_exists(settings.get('name')):
+            loud.delete_scheduled_job(settings.get('name'))
+
+        loud.create_scheduled_job(
+            settings=settings)
+
+
+class DeleteScheduledJobCommand(Command):
+    """Delete a scheduled_job"""
+    @property
+    def short_name(self):
+        return 'delete-scheduled-job'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'scheduled_job_name',
+            help="ScheduledJob name",
+            type=str,
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        loud.delete_scheduled_job(args.scheduled_job_name)
+
+
+class ListScheduledJobsCommand(Command):
+    """List configured scheduled_jobs."""
+    @property
+    def short_name(self):
+        return 'list-scheduled-jobs'
+
+    def add_args(self, parser):
+        parser.add_argument(
+            '-a', '--all',
+            help="All internal information",
+            action='store_true',
+            dest='show_all',
+        )
+
+    def exec(self, args):
+        loud = Loud(**self.config)
+        if args.show_all:
+            scheduled_jobs = list(
+                loud.scheduled_job_generator(
+                    fields=None,
+                    include_fields=None,
+                )
+            )
+            print(yaml.dump(scheduled_jobs, indent=2))
+        else:
+            for scheduled_job in loud.scheduled_job_generator(
+                fields=['name'],
+                include_fields=True,
+            ):
+                print(scheduled_job['name'])
+
+
 class CreateBucketCommand(Command):
     """Create a new bucket."""
     @property
@@ -394,7 +509,7 @@ class CreateBucketCommand(Command):
         """
         try:
             with open(path) as bucket_file:
-                return yaml.load(bucket_file)
+                return yaml.safe_load(bucket_file)
         except OSError as exn:
             raise LoudMLException(exn)
         except yaml.YAMLError as exn:
@@ -1176,6 +1291,9 @@ g_commands = [
     PlotCommand,
     ListJobsCommand,
     CancelJobCommand,
+    CreateScheduledJobCommand,
+    DeleteScheduledJobCommand,
+    ListScheduledJobsCommand,
     LoadNabCommand,
     ShowVersionCommand,
     HelpCommand,
