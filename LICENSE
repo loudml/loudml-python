@@ -1,6 +1,22 @@
+`loudml-python` is a product of collaborative work.
+Unless otherwise stated, all authors (see commit logs) retain copyright
+for their respective work, and release the work under the MIT licence
+(text below).
+
+Exceptions or notable authors are listed below
+in reverse chronological order:
+
+* files: *
+  MIT 2019 (c) Sebastien Leger
+  [regel](github.com/regel).
+* files: loudml/_version.py
+  MIT 2019 (c) Casper da Costa-Luis, Hadrien Mary, Stephen L.
+  [tqdm](tqdm/tqdm/_version.py).
+
+
 MIT License
 
-Copyright (c) 2019 loudml
+Copyright (c) 2019 Sebastien Leger
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
