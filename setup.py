@@ -59,6 +59,7 @@ setup(
             'buckets=loudml.buckets:BucketService',
             'models=loudml.models:ModelService',
             'jobs=loudml.jobs:JobService',
+            'scheduled_jobs=loudml.scheduled_jobs:ScheduledJobService',
             'templates=loudml.templates:TemplateService',
         ],
     },

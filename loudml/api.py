@@ -307,6 +307,12 @@ class Loud():
             )
 
     @property
+    def scheduled_jobs(self):
+        service = Factory.load('scheduled_jobs')
+        service.set_loudml_target(self)
+        return service
+
+    @property
     def jobs(self):
         service = Factory.load('jobs')
         service.set_loudml_target(self)
@@ -790,6 +796,71 @@ class Loud():
     ):
         return self.jobs.cancel_many(
             names=job_names)
+
+    def scheduled_job_generator(
+        self,
+        scheduled_job_names=None,
+        fields=None,
+        include_fields=None,
+        sort='name:1',
+    ):
+        global g_pagination_count
+        page = 0
+        while True:
+            found = 0
+            for scheduled_job in self.get_scheduled_jobs(
+                scheduled_job_names=scheduled_job_names,
+                fields=fields,
+                include_fields=include_fields,
+                page=page,
+                per_page=g_pagination_count,
+                sort=sort,
+            ):
+                yield scheduled_job
+                found += 1
+
+            page += 1
+            if not found:
+                break
+
+    def get_scheduled_jobs(
+        self,
+        scheduled_job_names=None,
+        fields=None,
+        include_fields=None,
+        page=0,
+        per_page=100,
+        sort='name:1',
+    ):
+        return self.scheduled_jobs.get(
+            names=scheduled_job_names,
+            fields=fields,
+            include_fields=include_fields,
+            page=page,
+            per_page=per_page,
+            sort=sort,
+        )
+
+    def scheduled_job_exists(
+        self,
+        scheduled_job_name,
+    ):
+        return self.scheduled_jobs.exists(
+            name=scheduled_job_name)
+
+    def delete_scheduled_job(
+        self,
+        scheduled_job_name,
+    ):
+        return self.scheduled_jobs.del_one(
+            name=scheduled_job_name)
+
+    def create_scheduled_job(
+        self,
+        settings,
+    ):
+        return self.scheduled_jobs.create(
+            settings=settings)
 
     def write_points(
         self, bucket_name, points, verbose=False, interval=1
