@@ -555,7 +555,7 @@ class Loud():
             resume=resume,
         )
 
-    def predict_model(
+    def eval_model(
         self,
         model_name,
         from_date,
@@ -565,7 +565,7 @@ class Loud():
         save_output_data=None,
         flag_abnormal_data=None,
     ):
-        return self.models.predict_one(
+        return self.models.eval_one(
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
