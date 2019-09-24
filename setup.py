@@ -1,13 +1,15 @@
 import io
+from io import open as io_open
 import os
 from setuptools import setup, find_packages
 
 
-def find_version():
-    if 'LOUDML_PYTHON_VERSION' in os.environ:
-        return os.environ['LOUDML_PYTHON_VERSION']
-    else:
-        return '0.0.0'
+# Get version from loudml/_version.py
+__version__ = None
+src_dir = os.path.abspath(os.path.dirname(__file__))
+version_file = os.path.join(src_dir, 'loudml', '_version.py')
+with io_open(version_file, mode='r') as fd:
+    exec(fd.read())
 
 
 with io.open('README.rst', encoding='utf-8') as f:
@@ -16,7 +18,7 @@ with io.open('README.rst', encoding='utf-8') as f:
 
 setup(
     name='loudml-python',
-    version=find_version(),
+    version=__version__,
     description='Loud ML Python API Client',
     long_description=long_description,
     author='Loud ML',
