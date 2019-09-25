@@ -1,7 +1,7 @@
 """
 Loud ML command line tool
 """
-
+import pkg_resources
 import argparse
 import signal
 import sys
@@ -1316,7 +1316,8 @@ def cmd_gen(args):
             loud = Loud(**config)
             print('Connected to {} version {}'.format(
                 args.addr, loud.version()))
-            print('Loud ML shell')
+            print('Loud ML shell {}'.format(
+                pkg_resources.require("loudml-python")[0].version))
         except requests.exceptions.ConnectionError:
             logging.error("%s: connect: connection refused", args.addr)
             logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
