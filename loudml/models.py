@@ -120,7 +120,7 @@ class ModelService(Service):
 
         response = requests.post(
             self._loud._format_url(
-                '{}/{}/_predict'.format(self._prefix, model_name), params)
+                '{}/{}/_eval'.format(self._prefix, model_name), params)
         )
         response.raise_for_status()
         if response.ok:
