@@ -206,12 +206,16 @@ def _format_prediction(data, i, feature):
 
 def format_buckets(data):
     features = sorted(data['observed'].keys())
+    features_first_row = [
+        '@{}'.format(feature)
+        for feature in features
+    ]
     loudml = [
         'loudml.{}'.format(feature)
         for feature in features
     ] if data.get('predicted') else []
     first_row = list(chain(
-        ['timestamp'], features, loudml))
+        ['timestamp'], features_first_row, loudml))
 
     rows = [first_row]
     for i, timestamp in enumerate(data['timestamps']):
