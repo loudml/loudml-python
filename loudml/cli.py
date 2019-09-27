@@ -38,20 +38,23 @@ def poll_job(job):
         print('Signal received. Canceled job: ', job.id)
         sys.exit()
 
+    saved_sigint_handler = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGINT, cancel_job_handler)
 
-    t = tqdm(desc=job.name, total=job.total)
     last_step = 0
-    while True:
-        time.sleep(1)
-        job.fetch()
-        new_step = job.step
-        t.update(new_step - last_step)
-        last_step = new_step
-        if job.done():
-            if job.error:
-                tqdm.write(job.error)
-            return
+    with tqdm(desc=job.name, total=job.total) as t:
+        while True:
+            time.sleep(1)
+            job.fetch()
+            new_step = job.step
+            t.update(new_step - last_step)
+            last_step = new_step
+            if job.done():
+                signal.signal(
+                    signal.SIGINT, saved_sigint_handler)
+                if job.error:
+                    tqdm.write(job.error)
+                return
 
 
 class Command:
@@ -730,10 +733,12 @@ class WriteBucketCommand(Command):
                 print('Signal received. Canceled job: ', job.id)
                 sys.exit()
 
+            saved_sigint_handler = signal.getsignal(signal.SIGINT)
             signal.signal(signal.SIGINT, cancel_job_handler)
             while not job.done():
                 time.sleep(1)
                 job.fetch()
+            signal.signal(signal.SIGINT, saved_sigint_handler)
 
 
 class ClearBucketCommand(Command):
