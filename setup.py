@@ -31,6 +31,7 @@ setup(
         'tqdm>=4.35.0',
         'pytz>=2019.2',
         'dateutils>=0.6.6',
+        'certifi',
     ],
     extras_require={'test': ['mock']},
     python_requires='>=2.7, !=3.0.*, !=3.1.*',
@@ -54,13 +55,6 @@ setup(
         'console_scripts': [
             'loudml=loudml.cli:main',
             'loudml-wave=loudml.wave:main',
-        ],
-        'loudml.services': [
-            'buckets=loudml.buckets:BucketService',
-            'models=loudml.models:ModelService',
-            'jobs=loudml.jobs:JobService',
-            'scheduled_jobs=loudml.scheduled_jobs:ScheduledJobService',
-            'templates=loudml.templates:TemplateService',
         ],
     },
 )

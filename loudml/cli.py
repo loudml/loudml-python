@@ -14,13 +14,15 @@ import math
 import readline  # noqa: must be loaded (shlex requirement)
 import shlex
 from tqdm import tqdm
-import requests.exceptions
 
-from loudml.api import (
+from loudml.client import (
     Loud,
 )
 from loudml.errors import (
    LoudMLException,
+   TransportError,
+   ConnectionError,
+   ConnectionTimeout,
 )
 from loudml.misc import (
     parse_constraint,
@@ -41,20 +43,29 @@ def poll_job(job):
     saved_sigint_handler = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGINT, cancel_job_handler)
 
-    last_step = 0
-    with tqdm(desc=job.name, total=job.total) as t:
-        while True:
-            time.sleep(1)
-            job.fetch()
+    with tqdm() as t:
+        last_step = 0
+        tqdm_reset = True
+
+        def tqdm_cb(*args):
+            nonlocal last_step
+            nonlocal tqdm_reset
+
+            t.set_description(desc=job.name)
+            if job.total and tqdm_reset:
+                t.reset(total=job.total)
+                tqdm_reset = False
+
             new_step = job.step
             t.update(new_step - last_step)
             last_step = new_step
-            if job.done():
-                signal.signal(
-                    signal.SIGINT, saved_sigint_handler)
-                if job.error:
-                    tqdm.write(job.error)
-                return
+
+        job.wait(interval=1, callback=tqdm_cb)
+
+    signal.signal(
+        signal.SIGINT, saved_sigint_handler)
+    if job.error:
+        tqdm.write(job.error)
 
 
 class Command:
@@ -77,9 +88,9 @@ class Command:
         Set loudml hostname
         """
         res = parse_addr(addr, default_port=8077)
+        hosts = ['{}:{}'.format(res['host'], res['port'])]
         self._config = {
-            'loudml_host': res['host'],
-            'loudml_port': res['port'],
+            'hosts': hosts,
         }
         self._quiet = quiet
 
@@ -91,8 +102,7 @@ class Command:
     def config(self):
         if self._config is None:
             self._config = {
-                'loudml_host': 'localhost',
-                'loudml_port': 8077,
+                'hosts': ['localhost:8077'],
             }
         return self._config
 
@@ -141,23 +151,20 @@ class LoadVersionCommand(Command):
 
     def add_args(self, parser):
         parser.add_argument(
-            '-v', '--version',
-            help="Version name",
-            type=str,
-        )
-        parser.add_argument(
             'model_name',
             help="Model name",
             type=str,
         )
+        parser.add_argument(
+            'version_name',
+            help="Version name",
+            type=str,
+        )
 
     def exec(self, args):
-        if not args.version:
-            raise LoudMLException(
-                "'version' argument is required")
-
         loud = Loud(**self.config)
-        loud.load_model_version(args.model_name, args.version)
+        loud.models.versions.load(
+            model_name=args.model_name, version=args.version_name)
 
 
 class ListVersionsCommand(Command):
@@ -188,7 +195,7 @@ class ListVersionsCommand(Command):
             include_fields = True
             fields = ['state', 'version']
 
-        models = loud.get_model_versions(
+        models = loud.models.versions.get(
             model_name=args.model_name,
             fields=fields,
             include_fields=include_fields,
@@ -258,10 +265,10 @@ class CreateModelCommand(Command):
         else:
             settings = self.load_model_file(args.model_file)
 
-        if args.force and loud.model_exists(settings.get('name')):
-            loud.delete_model(settings.get('name'))
+        if args.force and loud.models.exists(settings.get('name')):
+            loud.models.delete(settings.get('name'))
 
-        loud.create_model(
+        loud.models.create(
             settings=settings, template_name=args.template_name)
 
 
@@ -292,10 +299,10 @@ class CreateTemplateCommand(CreateModelCommand):
         loud = Loud(**self.config)
         settings = self._load_model_json(args.model_file)
 
-        if args.force and loud.template_exists(args.template_name):
-            loud.delete_template(args.template_name)
+        if args.force and loud.templates.exists(args.template_name):
+            loud.templates.delete(args.template_name)
 
-        loud.create_template(
+        loud.templates.create(
             settings, args.template_name)
 
 
@@ -314,7 +321,7 @@ class DeleteTemplateCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.delete_template(args.template_name)
+        loud.templates.delete(args.template_name)
 
 
 class ListTemplatesCommand(Command):
@@ -333,7 +340,7 @@ class ListTemplatesCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        templates = loud.get_templates()
+        templates = loud.templates.get()
         if args.show_all:
             print(yaml.dump(templates, indent=2))
         else:
@@ -350,7 +357,7 @@ class ListJobsCommand(Command):
     def exec(self, args):
         loud = Loud(**self.config)
         jobs = list(
-            loud.job_generator(
+            loud.jobs.generator(
                 fields=['result'],
                 include_fields=False,
             )
@@ -374,7 +381,7 @@ class CancelJobCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.cancel_jobs(
+        loud.jobs.cancel_jobs(
             job_names=[args.job_id])
 
 
@@ -424,10 +431,10 @@ class CreateScheduledJobCommand(Command):
         loud = Loud(**self.config)
         settings = self.load_scheduled_job_file(args.scheduled_job_file)
 
-        if args.force and loud.scheduled_job_exists(settings.get('name')):
-            loud.delete_scheduled_job(settings.get('name'))
+        if args.force and loud.scheduled_jobs.exists(settings.get('name')):
+            loud.scheduled_jobs.delete(settings.get('name'))
 
-        loud.create_scheduled_job(
+        loud.scheduled_jobs.create(
             settings=settings)
 
 
@@ -446,7 +453,7 @@ class DeleteScheduledJobCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.delete_scheduled_job(args.scheduled_job_name)
+        loud.scheduled_jobs.delete(args.scheduled_job_name)
 
 
 class ListScheduledJobsCommand(Command):
@@ -467,14 +474,14 @@ class ListScheduledJobsCommand(Command):
         loud = Loud(**self.config)
         if args.show_all:
             scheduled_jobs = list(
-                loud.scheduled_job_generator(
+                loud.scheduled_jobs.generator(
                     fields=None,
                     include_fields=None,
                 )
             )
             print(yaml.dump(scheduled_jobs, indent=2))
         else:
-            for scheduled_job in loud.scheduled_job_generator(
+            for scheduled_job in loud.scheduled_jobs.generator(
                 fields=['name'],
                 include_fields=True,
             ):
@@ -538,10 +545,10 @@ class CreateBucketCommand(Command):
         else:
             settings = self.load_bucket_file(args.bucket_file)
 
-        if args.force and loud.bucket_exists(settings.get('name')):
-            loud.delete_bucket(settings.get('name'))
+        if args.force and loud.buckets.exists(settings.get('name')):
+            loud.buckets.delete(settings.get('name'))
 
-        loud.create_bucket(settings)
+        loud.buckets.create(settings)
 
 
 class ListBucketsCommand(Command):
@@ -562,14 +569,14 @@ class ListBucketsCommand(Command):
         loud = Loud(**self.config)
         if args.show_all:
             buckets = list(
-                loud.bucket_generator(
+                loud.buckets.generator(
                     fields=None,
                     include_fields=None,
                 )
             )
             print(yaml.dump(buckets, indent=2))
         else:
-            for bucket in loud.bucket_generator(
+            for bucket in loud.buckets.generator(
                 fields=['name'],
                 include_fields=True,
             ):
@@ -591,7 +598,7 @@ class DeleteBucketCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.delete_bucket(args.bucket_name)
+        loud.buckets.delete(args.bucket_name)
 
 
 class ShowBucketCommand(Command):
@@ -609,7 +616,7 @@ class ShowBucketCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        buckets = loud.get_buckets(
+        buckets = loud.buckets.get(
             bucket_names=[args.bucket_name],
         )
         if not len(buckets):
@@ -671,16 +678,17 @@ class ReadBucketCommand(Command):
                 "'to' argument is required")
 
         loud = Loud(**self.config)
-        job = loud.read_bucket(
+        job_name = loud.buckets.read(
             bucket_name=args.bucket_name,
-            from_date=args.from_date,
-            to_date=args.to_date,
+            _from=args.from_date,
+            _to=args.to_date,
             bucket_interval=args.bucket_interval,
             features=args.features,
         )
         if args.bg:
-            print(job.id)
+            print(job_name)
         else:
+            job = loud.jobs.id(job_name)
             poll_job(job)
             if job.success() and not self.quiet:
                 out = job.fetch_result()
@@ -722,7 +730,7 @@ class WriteBucketCommand(Command):
         points = json.load(fd)
         fd.close()
 
-        for job in tqdm(loud.write_bucket(
+        for job in tqdm(loud.buckets.write(
             bucket_name=args.bucket_name,
             points=points,
             batch_size=args.batch_size,
@@ -756,7 +764,7 @@ class ClearBucketCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.clear_bucket(
+        loud.buckets.clear(
             bucket_name=args.bucket_name,
         )
 
@@ -779,14 +787,14 @@ class ListModelsCommand(Command):
         loud = Loud(**self.config)
         if args.show_all:
             models = list(
-                loud.model_generator(
+                loud.models.generator(
                     fields=None,
                     include_fields=None,
                 )
             )
             print(yaml.dump(models, indent=2))
         else:
-            for model in loud.model_generator(
+            for model in loud.models.generator(
                 fields=['state'],
                 include_fields=False,
             ):
@@ -808,7 +816,7 @@ class DeleteModelCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.delete_model(args.model_name)
+        loud.models.delete(args.model_name)
 
 
 class StartModelCommand(Command):
@@ -826,7 +834,7 @@ class StartModelCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.start_inference(
+        loud.models.start_inference(
             model_names=[args.model_name],
             save_output_data=True,
             flag_abnormal_data=True)
@@ -847,7 +855,7 @@ class StopModelCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        loud.stop_inference(model_names=[args.model_name])
+        loud.models.stop_inference(model_names=[args.model_name])
 
 
 class ShowModelCommand(Command):
@@ -878,7 +886,7 @@ class ShowModelCommand(Command):
             include_fields = False
             fields = ['state']
 
-        models = loud.get_models(
+        models = loud.models.get(
             model_names=[args.model_name],
             fields=fields,
             include_fields=include_fields,
@@ -936,10 +944,10 @@ class PlotCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        _ = loud.get_model_latent_data(
+        _ = loud.models.get_latent_data(
             model_name=args.model_name,
-            from_date=args.from_date,
-            to_date=args.to_date,
+            _from=args.from_date,
+            _to=args.to_date,
         )
 
 
@@ -995,7 +1003,7 @@ class TrainCommand(Command):
 
     def exec_all(self, args):
         loud = Loud(**self.config)
-        for model in loud.model_generator(
+        for model in loud.models.generator(
             fields=['settings'],
             include_fields=True,
         ):
@@ -1014,20 +1022,21 @@ class TrainCommand(Command):
                 "'to' argument is required",
             )
         loud = Loud(**self.config)
-        job = loud.train_model(
+        job_name = loud.models.train(
             model_name=args.model_name,
-            from_date=args.from_date,
-            to_date=args.to_date,
+            _from=args.from_date,
+            _to=args.to_date,
             max_evals=args.max_evals,
             epochs=args.epochs,
-            resume=args.resume_training,
+            _continue=args.resume_training,
         )
-        if not job:
+        if not job_name:
             print("Failed to start job")
             exit(1)
         if args.bg:
-            print(job.id)
+            print(job_name)
         else:
+            job = loud.jobs.id(job_name)
             poll_job(job)
 
 
@@ -1101,19 +1110,20 @@ class ForecastCommand(Command):
             else None
 
         loud = Loud(**self.config)
-        job = loud.forecast_model(
+        job_name = loud.models.forecast(
             model_name=args.model_name,
             input_bucket=args.input,
             output_bucket=args.output if args.save else None,
             save_output_data=args.save,
-            from_date=args.from_date,
-            to_date=args.to_date,
+            _from=args.from_date,
+            _to=args.to_date,
             constraint=constraint,
             p_val=args.p_val,
         )
         if args.bg:
-            print(job.id)
+            print(job_name)
         else:
+            job = loud.jobs.id(job_name)
             poll_job(job)
             if job.success() and not self.quiet:
                 out = job.fetch_result()
@@ -1181,18 +1191,19 @@ class EvalModelCommand(Command):
                 "'to' argument is required")
 
         loud = Loud(**self.config)
-        job = loud.eval_model(
+        job_name = loud.models.eval_model(
             model_name=args.model_name,
             input_bucket=args.input,
             output_bucket=args.output if args.save else None,
-            from_date=args.from_date,
-            to_date=args.to_date,
+            _from=args.from_date,
+            _to=args.to_date,
             save_output_data=args.save,
             flag_abnormal_data=args.anomalies,
         )
         if args.bg:
-            print(job.id)
+            print(job_name)
         else:
+            job = loud.jobs.id(job_name)
             poll_job(job)
             if job.success() and not self.quiet:
                 out = job.fetch_result()
@@ -1313,20 +1324,20 @@ def cmd_gen(args):
         yield args.execute
     else:
         res = parse_addr(args.addr, default_port=8077)
+        hosts = ['{}:{}'.format(res['host'], res['port'])]
         config = {
-            'loudml_host': res['host'],
-            'loudml_port': res['port'],
+            'hosts': hosts,
         }
-        try:
-            loud = Loud(**config)
-            print('Connected to {} version {}'.format(
-                args.addr, loud.version()))
-            print('Loud ML shell {}'.format(
-                pkg_resources.require("loudml-python")[0].version))
-        except requests.exceptions.ConnectionError:
+
+        loud = Loud(**config)
+        if not loud.ping():
             logging.error("%s: connect: connection refused", args.addr)
             logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
             sys.exit(2)
+        print('Connected to {} version {}'.format(
+            args.addr, loud.version()))
+        print('Loud ML shell {}'.format(
+            pkg_resources.require("loudml-python")[0].version))
 
         while True:
             r = input('> ').strip()
@@ -1381,7 +1392,7 @@ Examples:
     )
 
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.ERROR)
     args = parser.parse_args(argv)
 
     shell_parser = argparse.ArgumentParser(
@@ -1414,17 +1425,13 @@ Examples:
             try:
                 shell_args.exec(shell_args)
                 exit_code = 0
-            except requests.exceptions.ConnectionError:
+            except ConnectionTimeout:
+                logging.error("Connection timed out")
+            except ConnectionError:
                 logging.error("%s: connect: connection refused", args.addr)
                 logging.error("Please check your connection settings and ensure 'loudmld' is running.")  # noqa
                 sys.exit(2)
-            except requests.exceptions.HTTPError as exn:
-                logging.error(str(exn))
-            except requests.exceptions.Timeout:
-                logging.error("Request timed out")
-            except requests.exceptions.TooManyRedirects:
-                logging.error("Too many redirects")
-            except requests.exceptions.RequestException as exn:
+            except TransportError as exn:
                 logging.error(str(exn))
 
         return exit_code  # All input is consumed
