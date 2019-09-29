@@ -21,16 +21,18 @@ def parse_constraint(constraint):
     try:
         feature, _type, threshold = constraint.split(':')
     except ValueError:
-        raise errors.Invalid("invalid format for 'constraint' parameter")
+        raise errors.ImproperlyConfigured(
+            "invalid format for 'constraint' parameter")
 
     if _type not in ('low', 'high'):
-        raise errors.Invalid(
+        raise errors.ImproperlyConfigured(
             "invalid threshold type for 'constraint' parameter")
 
     try:
         threshold = float(threshold)
     except ValueError:
-        raise errors.Invalid("invalid threshold for 'constraint' parameter")
+        raise errors.ImproperlyConfigured(
+            "invalid threshold for 'constraint' parameter")
 
     return {
         'feature': feature,
@@ -65,7 +67,7 @@ def parse_timedelta(
     try:
         value = float(value)
     except ValueError:
-        raise errors.Invalid("invalid time delta value")
+        raise errors.ImproperlyConfigured("invalid time delta value")
 
     if unit == 'M':
         value *= 30
@@ -83,25 +85,25 @@ def parse_timedelta(
     }.get(unit)
 
     if unit is None:
-        raise errors.Invalid("invalid time delta unit")
+        raise errors.ImproperlyConfigured("invalid time delta unit")
 
     message = "time delta must be {} {} seconds"
 
     if min is not None:
         if min_included:
             if value < min:
-                raise errors.Invalid(message.format(">=", min))
+                raise errors.ImproperlyConfigured(message.format(">=", min))
         else:
             if value <= min:
-                raise errors.Invalid(message.format(">", min))
+                raise errors.ImproperlyConfigured(message.format(">", min))
 
     if max is not None:
         if max_included:
             if value > max:
-                raise errors.Invalid(message.format("<=", max))
+                raise errors.ImproperlyConfigured(message.format("<=", max))
         else:
             if value >= max:
-                raise errors.Invalid(message.format("<", max))
+                raise errors.ImproperlyConfigured(message.format("<", max))
 
     return datetime.timedelta(**{unit: value})
 

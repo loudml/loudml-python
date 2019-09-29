@@ -1,45 +1,112 @@
 """
-Loud ML errors
+Loud ML exceptions
 """
 
 
 class LoudMLException(Exception):
-    """Loud ML exception"""
-    code = 500
+    """
+    Base class for all exceptions raised by this package's operations (doesn't
+    apply to :class:`~loudml.ImproperlyConfigured`).
+    """
 
-    def __init__(self, msg=None):
-        super().__init__(msg or self.__doc__)
+
+class ImproperlyConfigured(Exception):
+    """
+    Exception raised when the config passed to the client is inconsistent or invalid.
+    """
 
 
-class Invalid(LoudMLException):
-    """Data is invalid"""
-    code = 400
+class SerializationError(LoudMLException):
+    """
+    Data passed in failed to serialize properly in the ``Serializer`` being
+    used.
+    """
 
-    def __init__(self, error, name=None, path=None, hint=None):
-        self.error = error
-        self.name = name
-        self.path = path
-        self.hint = hint
+
+class TransportError(LoudMLException):
+    """
+    Exception raised when LML returns a non-OK (>=400) HTTP status code. Or when
+    an actual connection error happens; in that case the ``status_code`` will
+    be set to ``'N/A'``.
+    """
+    @property
+    def status_code(self):
+        """
+        The HTTP status code of the response that precipitated the error or
+        ``'N/A'`` if not applicable.
+        """
+        return self.args[0]
+
+    @property
+    def error(self):
+        """ A string error message. """
+        return self.args[1]
+
+    @property
+    def info(self):
+        """
+        Dict of returned error info from LML, where available, underlying
+        exception when not.
+        """
+        return self.args[2]
 
     def __str__(self):
-        hint = "" if self.hint is None else " ({})".format(self.hint)
-
-        if self.path is None or len(self.path) == 0:
-            return "{} is invalid: {}{}".format(
-                self.name or "data",
-                self.error,
-                hint,
-            )
-        else:
-            path = '.'.join([str(key) for key in self.path])
-            return "invalid field {}: {}{}".format(path, self.error, hint)
+        cause = ''
+        # try:
+        #     if self.info:
+        #         cause = ', %r' % self.info['error']['root_cause'][0]['reason']
+        # except LookupError:
+        #     pass
+        return '%s(%s, %r%s)' % (self.__class__.__name__, self.status_code, self.error, cause)
 
 
-class NotFound(LoudMLException):
-    """Not found"""
-    code = 404
+class ConnectionError(TransportError):
+    """
+    Error raised when there was an exception while talking to LML. Original
+    exception from the underlying :class:`~loudml.Connection`
+    implementation is available as ``.info.``
+    """
+    def __str__(self):
+        return 'ConnectionError(%s) caused by: %s(%s)' % (
+            self.error, self.info.__class__.__name__, self.info)
 
 
-class MethodNotSupported(LoudMLException):
-    """Not found"""
-    code = 500
+class SSLError(ConnectionError):
+    """ Error raised when encountering SSL errors. """
+
+
+class ConnectionTimeout(ConnectionError):
+    """ A network timeout. Doesn't cause a node retry by default. """
+    def __str__(self):
+        return 'ConnectionTimeout caused by - %s(%s)' % (
+            self.info.__class__.__name__, self.info)
+
+
+class NotFoundError(TransportError):
+    """ Exception representing a 404 status code. """
+
+
+class ConflictError(TransportError):
+    """ Exception representing a 409 status code. """
+
+
+class RequestError(TransportError):
+    """ Exception representing a 400 status code. """
+
+
+class AuthenticationException(TransportError):
+    """ Exception representing a 401 status code. """
+
+
+class AuthorizationException(TransportError):
+    """ Exception representing a 403 status code. """
+
+
+# more generic mappings from status_code to python exceptions
+HTTP_EXCEPTIONS = {
+    400: RequestError,
+    401: AuthenticationException,
+    403: AuthorizationException,
+    404: NotFoundError,
+    409: ConflictError,
+}

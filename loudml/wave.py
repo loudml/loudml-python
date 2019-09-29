@@ -16,12 +16,11 @@ from loudml.randevents import (
 from loudml.errors import (
    LoudMLException,
 )
-from loudml.api import (
+from loudml.client import (
     Loud,
 )
 from loudml.misc import (
     make_datetime,
-    parse_addr,
 )
 
 
@@ -214,11 +213,9 @@ def main():
     args = parser.parse_args()
 
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    addr = parse_addr(args.addr, default_port=8077)
+    logger.setLevel(logging.ERROR)
     loud = Loud(
-        loudml_host=addr['host'],
-        loudml_port=addr['port'],
+        hosts=[args.addr],
     )
 
     if args.shape == 'flat':
@@ -279,7 +276,7 @@ def main():
                 args.addr, loud.version()))
 
         if args.clear:
-            loud.clear_bucket(args.bucket_name)
+            loud.buckets.clear(args.bucket_name)
 
         dump_to_bucket(
             loud,

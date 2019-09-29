@@ -1,258 +1,212 @@
-import requests
-import logging
-
-from loudml.api import (
-    Service,
-    Job,
-    get_job_id,
+from loudml.utils import (
+    NamespacedClient, query_params, _make_path, SKIP_IN_PATH
 )
+from loudml.errors import TransportError
 
 
-class ModelService(Service):
-    def __init__(
-        self,
+class ModelVersionsClient(NamespacedClient):
+    @query_params('version')
+    def load(
+        self, model_name, params=None
     ):
-        super().__init__(prefix='/models')
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        return self.transport.perform_request('POST', _make_path(
+            'models', model_name, '_restore'), params=params)
 
-    def start_one(
+    def generator(
         self,
-        name,
-        save_output_data=None,
-        flag_abnormal_data=None,
-    ):
-        params = {}
-        if save_output_data:
-            params['save_prediction'] = bool(save_output_data)
-        if flag_abnormal_data:
-            params['detect_anomalies'] = bool(flag_abnormal_data)
-
-        return self._do_one(name, '_start', params)
-
-    def start_many(
-        self,
-        names,
-        save_output_data=None,
-        flag_abnormal_data=None,
-    ):
-        params = {}
-        if save_output_data:
-            params['save_prediction'] = bool(save_output_data)
-        if flag_abnormal_data:
-            params['detect_anomalies'] = bool(flag_abnormal_data)
-
-        return self._do_many(names, '_start', params)
-
-    def stop_one(
-        self,
-        name,
-    ):
-        return self._do_one(name, '_stop')
-
-    def stop_many(
-        self,
-        names,
-    ):
-        return self._do_many(names, '_stop')
-
-    def train_one(
-        self,
-        model_name,
-        from_date,
-        to_date,
-        max_evals=10,
-        epochs=None,
-        resume=None,
-        start_when_done=None,
-    ):
-        params = {
-            'from': from_date,
-            'to': to_date,
-        }
-        if max_evals:
-            params['max_evals'] = int(max_evals)
-        if epochs:
-            params['epochs'] = int(epochs)
-        if resume:
-            params['continue'] = bool(resume)
-        if start_when_done:
-            params['autostart'] = bool(start_when_done)
-
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/_train'.format(self._prefix, model_name), params)
-        )
-        response.raise_for_status()
-        if response.ok:
-            job_id = get_job_id(response)
-            return Job(
-                job_id,
-                self._loud,
-                name='training({})'.format(model_name),
-                total=max_evals,
-            )
-        else:
-            logging.error(response.text)
-            return None
-
-    def eval_one(
-        self,
-        model_name,
-        from_date,
-        to_date,
-        input_bucket=None,
-        output_bucket=None,
-        save_output_data=None,
-        flag_abnormal_data=None,
-    ):
-        params = {
-            'from': from_date,
-            'to': to_date,
-            'bg': True,
-        }
-        if input_bucket:
-            params['input_bucket'] = str(input_bucket)
-        if output_bucket:
-            params['output_bucket'] = str(output_bucket)
-        if save_output_data:
-            params['save_prediction'] = bool(save_output_data)
-        if flag_abnormal_data:
-            params['detect_anomalies'] = bool(flag_abnormal_data)
-
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/_eval'.format(self._prefix, model_name), params)
-        )
-        response.raise_for_status()
-        if response.ok:
-            job_id = get_job_id(response)
-            return Job(
-                job_id,
-                self._loud,
-                name='eval({})'.format(model_name),
-                total=1,
-            )
-        else:
-            logging.error(response.text)
-            return None
-
-    def forecast_one(
-        self,
-        model_name,
-        from_date,
-        to_date,
-        input_bucket=None,
-        output_bucket=None,
-        save_output_data=None,
-        p_val=None,
-        constraint=None,
-    ):
-        params = {
-            'from': from_date,
-            'to': to_date,
-            'bg': True,
-        }
-        if input_bucket:
-            params['input_bucket'] = str(input_bucket)
-        if output_bucket:
-            params['output_bucket'] = str(output_bucket)
-        if save_output_data:
-            params['save_prediction'] = bool(save_output_data)
-        if p_val:
-            params['p_val'] = float(p_val)
-        if constraint:
-            params['constraint'] = "{}:{}:{}".format(
-                constraint['feature'],
-                constraint['type'],
-                constraint['threshold'],
-            )
-
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/_forecast'.format(self._prefix, model_name), params)
-        )
-        response.raise_for_status()
-        if response.ok:
-            job_id = get_job_id(response)
-            return Job(
-                job_id,
-                self._loud,
-                name='forecast({})'.format(model_name),
-                total=1,
-            )
-        else:
-            logging.error(response.text)
-            return None
-
-    def get_latent_data(
-        self,
-        model_name,
-        from_date,
-        to_date,
-    ):
-        params = {
-            'from': from_date,
-            'to': to_date,
-        }
-
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/_latent'.format(self._prefix, model_name), params)
-        )
-        response.raise_for_status()
-        if response.ok:
-            job_id = get_job_id(response)
-            return Job(
-                job_id,
-                self._loud,
-                name='latent({})'.format(model_name),
-                total=1,
-            )
-        else:
-            logging.error(response.text)
-            return None
-
-    def load_version(
-        self,
-        model_name,
-        version,
-    ):
-        params = {
-            'version': str(version),
-        }
-        response = requests.post(
-            self._loud._format_url(
-                '{}/{}/_restore'.format(self._prefix, model_name),
-                params)
-        )
-        response.raise_for_status()
-        if not response.ok:
-            logging.error(response.text)
-
-    def get_versions(
-        self,
-        model_name,
+        model_name=None,
         fields=None,
         include_fields=None,
-        page=0,
-        per_page=100,
         sort=None,
+        per_page=100,
     ):
-        params = {
-            'include_fields': bool(include_fields),
-            'page': int(page),
-            'per_page': int(per_page),
-            'sort': sort,
-        }
-        if fields:
-            params['fields'] = ";".join(fields)
+        page = 0
+        while True:
+            found = 0
+            for model in self.get(
+                model_name=model_name,
+                fields=fields,
+                include_fields=include_fields,
+                sort=sort,
+                per_page=per_page,
+                page=page,
+            ):
+                yield model
+                found += 1
 
-        response = requests.get(
-            self._loud._format_url(
-                '{}/{}/versions'.format(self._prefix, model_name),
-                params)
-        )
-        response.raise_for_status()
-        if not response.ok:
-            logging.error(response.text)
-            return None
-        return response.json()
+            page += 1
+            if not found:
+                break
+
+    @query_params('fields', 'include_fields', 'page', 'per_page', 'sort')
+    def get(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        return self.transport.perform_request('GET', _make_path(
+            'models', model_name, 'versions'), params=params)
+
+    @query_params()
+    def exists(
+        self, model_name, version_name, params=None
+    ):
+        for param in (model_name, version_name):
+            if param in SKIP_IN_PATH:
+                raise ValueError("Empty value passed for a required argument.")
+        try:
+            return self.transport.perform_request('HEAD', _make_path(
+                'models', model_name, 'versions', version_name), params=params)
+        except TransportError:
+            return False
+
+
+class ModelsClient(NamespacedClient):
+    def __init__(self, client):
+        super().__init__(client)
+        self.versions = ModelVersionsClient(client)
+
+    def generator(
+        self,
+        model_names=None,
+        fields=None,
+        include_fields=None,
+        sort='name:1',
+        per_page=100,
+    ):
+        page = 0
+        while True:
+            found = 0
+            for model in self.get(
+                model_names=model_names,
+                fields=fields,
+                include_fields=include_fields,
+                sort=sort,
+                per_page=per_page,
+                page=page,
+            ):
+                yield model
+                found += 1
+
+            page += 1
+            if not found:
+                break
+
+    @query_params('fields', 'include_fields', 'page', 'per_page', 'sort')
+    def get(
+        self, model_names=None, params=None
+    ):
+        return self.transport.perform_request('GET', _make_path(
+            'models', model_names), params=params)
+
+    @query_params()
+    def exists(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        try:
+            return self.transport.perform_request('HEAD', _make_path(
+                'models', model_name), params=params)
+        except TransportError:
+            return False
+
+    @query_params('from_template')
+    def create(
+        self, settings, params=None
+    ):
+        for param in (settings):
+            if param in SKIP_IN_PATH:
+                raise ValueError("Empty value passed for a required argument.")
+        return self.transport.perform_request(
+            'POST', '/models', params=params, body=settings)
+
+    @query_params()
+    def delete(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        return self.transport.perform_request('DELETE', _make_path(
+            'models', model_name), params=params)
+
+    @query_params(
+        'from', 'to', 'epochs', 'max_evals', 'continue'
+    )
+    def train(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+
+        if not params:
+            params = {'max_evals': 10}
+        elif 'max_evals' not in params:
+            params['max_evals'] = 10
+
+        response = self.transport.perform_request('POST', _make_path(
+            'models', model_name, '_train'), params=params)
+        return response
+
+    @query_params(
+        'from', 'to', 'bg', 'input_bucket', 'output_bucket',
+        'save_output_data', 'flag_abnormal_data'
+    )
+    def eval_model(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        if not params:
+            params = {'bg': True}
+        elif 'bg' not in params:
+            params['bg'] = True
+        response = self.transport.perform_request('POST', _make_path(
+            'models', model_name, '_eval'), params=params)
+        return response
+
+    @query_params(
+        'from', 'to', 'bg', 'input_bucket', 'output_bucket',
+        'p_val', 'constraint', 'save_output_data'
+    )
+    def forecast(
+        self, model_name, params=None
+    ):
+        if model_name in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_name'.")
+        if not params:
+            params = {'bg': True}
+        elif 'bg' not in params:
+            params['bg'] = True
+        response = self.transport.perform_request('POST', _make_path(
+            'models', model_name, '_forecast'), params=params)
+        return response
+
+    @query_params('save_output_data', 'flag_abnormal_data')
+    def start_inference(
+        self, model_names, params=None
+    ):
+        if model_names in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_names'.")
+        return self.transport.perform_request('POST', _make_path(
+            'models', model_names, '_start'), params=params)
+
+    @query_params()
+    def stop_inference(
+        self, model_names, params=None
+    ):
+        if model_names in SKIP_IN_PATH:
+            raise ValueError(
+                "Empty value passed for a required argument 'model_names'.")
+        return self.transport.perform_request('POST', _make_path(
+            'models', model_names, '_stop'), params=params)
