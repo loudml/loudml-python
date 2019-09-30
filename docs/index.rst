@@ -277,9 +277,18 @@ However, you can implement your own custom serializer::
 
 .. _JSONSerializer: https://github.com/loudml/loudml-python/blob/master/loudml/serializer.py#L24
 
+Contents
+--------
+
+.. toctree::
+      :maxdepth: 2
+
+   api
+   connection
+   transports
+
 License
 -------
-
 
 `loudml-python` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
