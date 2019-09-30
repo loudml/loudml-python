@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 import pkg_resources
 
-__versionstr__ = pkg_resources.require("loudml-python")[0].version
+try:
+    __versionstr__ = pkg_resources.require(
+        "loudml-python")[0].version
+except pkg_resources.DistributionNotFound:
+    __versionstr__ = '0.0.0'
 
 from .client import Loud
 from .transport import Transport
