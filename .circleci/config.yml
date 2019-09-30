@@ -21,7 +21,7 @@ jobs:
             - ".venv"
             - "/usr/local/bin"
             - "/usr/local/lib/python2.7/site-packages"
-      - run: coverage run --include=loudml/v1/*.py --omit=loudml/v1/test/*.py -m unittest discover
+      - run: coverage run --include=loudml/*.py --omit=loudml/test/*.py -m unittest discover
       - run:
           when: on_success
           command: bash <(curl -s https://codecov.io/bash)
@@ -46,7 +46,7 @@ jobs:
             - ".venv"
             - "/usr/local/bin"
             - "/usr/local/lib/python3.6/site-packages"
-      - run: coverage run --include=loudml/v1/*.py --omit=loudml/v1/test/*.py -m unittest discover
+      - run: coverage run --include=loudml/*.py --omit=loudml/test/*.py -m unittest discover
       - run:
           when: on_success
           command: bash <(curl -s https://codecov.io/bash)
