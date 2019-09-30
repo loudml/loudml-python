@@ -35,8 +35,8 @@ If you’ve installed `loudml-python` locally, the `loudml` command should be av
 .. code-block:: bash
 
     $ loudml
-    Connected to http://localhost:8077 version 1.6.0
-    Loud ML shell
+    Connected to localhost:8077 version 1.6.0-577c87de
+    Loud ML shell 1.6.0-42136d38
     >
 
 You can get a description of the available commands:
@@ -54,9 +54,9 @@ and run queries.
 
 .. code-block:: pycon
 
-    >>> import loudml.api
-    >>> loud = loudml.api.Loud(loudml_host='localhost', loudml_port=8077)
-    >>> models = loud.get_models(
+    >>> from loudml.client import Loud
+    >>> loud = Loud(hosts=['localhost:8077'])
+    >>> models = loud.models.get(
             model_names=['first_model'],
             fields=['settings', 'state'],
             include_fields=True,
@@ -66,7 +66,8 @@ and run queries.
     >>> print(models[0]['state'])
     {'trained': False}
 
-Long running commands return a `Job` class instance that can be used to
+Long running commands eg training return a job name. Use
+`loudml.jobs.id(job_name)` to create a class instance and then
 track the progress of the job or cancel it. `loudml` uses
 `tqdm <https://pypi.org/project/tqdm/>`_ to display progress information.
 
