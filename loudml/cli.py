@@ -269,7 +269,7 @@ class CreateModelCommand(Command):
             loud.models.delete(settings.get('name'))
 
         loud.models.create(
-            settings=settings, template_name=args.template_name)
+            settings=settings, from_template=args.template_name)
 
 
 class CreateTemplateCommand(CreateModelCommand):
