@@ -71,39 +71,39 @@ For example, to only return ``settings`` do::
 
 
 Loud
--------------
+----
 
 .. autoclass:: Loud
       :members:
 
-.. py:module:: loudml.client
+.. py:module:: loudml
 
 Models
--------
+------
 
 .. autoclass:: ModelsClient
       :members:
 
 Jobs
-------
+----
 
 .. autoclass:: JobsClient
       :members:
 
 Scheduled Jobs
--------
+--------------
 
 .. autoclass:: ScheduledJobsClient
       :members:
 
 Buckets
------
+-------
 
 .. autoclass:: BucketsClient
       :members:
 
 Templates
----
+---------
 
 .. autoclass:: TemplatesClient
       :members:
