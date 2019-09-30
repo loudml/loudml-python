@@ -540,10 +540,7 @@ class CreateBucketCommand(Command):
 
     def exec(self, args):
         loud = Loud(**self.config)
-        if args.template is not None:
-            settings = self._load_bucket_json(args.bucket_file)
-        else:
-            settings = self.load_bucket_file(args.bucket_file)
+        settings = self.load_bucket_file(args.bucket_file)
 
         if args.force and loud.buckets.exists(settings.get('name')):
             loud.buckets.delete(settings.get('name'))
