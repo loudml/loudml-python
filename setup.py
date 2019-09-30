@@ -4,12 +4,14 @@ import os
 from setuptools import setup, find_packages
 
 
-# Get version from loudml/_version.py
-__version__ = None
-src_dir = os.path.abspath(os.path.dirname(__file__))
-version_file = os.path.join(src_dir, 'loudml', '_version.py')
-with io_open(version_file, mode='r') as fd:
-    exec(fd.read())
+def find_version():
+    """Get version from loudml/_version.py"""
+    _locals = locals()
+    src_dir = os.path.abspath(os.path.dirname(__file__))
+    version_file = os.path.join(src_dir, 'loudml', '_version.py')
+    with io_open(version_file, mode='r') as fd:
+        exec(fd.read())  # __version__ is set in the exec call.
+        return _locals['__version__']
 
 
 with io.open('README.rst', encoding='utf-8') as f:
@@ -18,7 +20,7 @@ with io.open('README.rst', encoding='utf-8') as f:
 
 setup(
     name='loudml-python',
-    version=__version__,
+    version=find_version(),
     description='Loud ML Python API Client',
     long_description=long_description,
     author='Loud ML',
