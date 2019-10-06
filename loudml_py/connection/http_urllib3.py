@@ -7,8 +7,8 @@ from urllib3.util.retry import Retry
 import warnings
 import gzip
 
-from loudml.connection.base import Connection
-from loudml.errors import (
+from loudml_py.connection.base import Connection
+from loudml_py.errors import (
     ConnectionError,
     ImproperlyConfigured,
     ConnectionTimeout,

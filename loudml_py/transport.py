@@ -1,17 +1,17 @@
 import time
 from itertools import chain
 
-from loudml.connection import Urllib3HttpConnection
-from loudml.connection_pool import (
+from loudml_py.connection import Urllib3HttpConnection
+from loudml_py.connection_pool import (
     ConnectionPool,
     DummyConnectionPool
 )
-from loudml.serializer import (
+from loudml_py.serializer import (
     JSONSerializer,
     Deserializer,
     DEFAULT_SERIALIZERS,
 )
-from loudml.errors import (
+from loudml_py.errors import (
     ConnectionError,
     TransportError,
     SerializationError,

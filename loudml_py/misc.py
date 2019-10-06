@@ -2,7 +2,7 @@
 Miscelaneous Loud ML helpers
 """
 from itertools import chain
-from loudml import (
+from loudml_py import (
     errors,
 )
 import datetime

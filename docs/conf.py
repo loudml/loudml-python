@@ -47,10 +47,10 @@ copyright = u"2019, Sébastien Léger"
 # built documents.
 #
 
-import loudml
+import loudml_py
 
 # The short X.Y version.
-version = loudml.__versionstr__
+version = loudml_py.__versionstr__
 # The full version, including alpha/beta/rc tags.
 release = version
 

@@ -34,7 +34,7 @@ Example Usage
 ::
 
     from datetime import datetime
-    from loudml.client import Loud
+    from loudml_py.client import Loud
     loud = Loud(hosts=['localhost:8077'])
     models = loud.models.get(
         model_names=['first_model'],
@@ -63,14 +63,14 @@ information.
 The transport layer will create an instance of the selected connection class
 per node and keep track of the health of individual nodes - if a node becomes
 unresponsive (throwing exceptions while connecting to it) it's put on a timeout
-by the :class:`~loudml.ConnectionPool` class and only returned to the
+by the :class:`~loudml_py.ConnectionPool` class and only returned to the
 circulation after the timeout is over (or when no live nodes are left). By
 default nodes are randomized before being passed into the pool and round-robin
 strategy is used for load balancing.
 
 You can customize this behavior by passing parameters to the
 :ref:`connection_api` (all keyword arguments to the
-:class:`~loudml.Loud` class will be passed through). If what
+:class:`~loudml_py.Loud` class will be passed through). If what
 you want to accomplish is not supported you should be able to create a subclass
 of the relevant component and pass it in as a parameter to be used instead of
 the default implementation.
@@ -80,7 +80,7 @@ Automatic Retries
 ~~~~~~~~~~~~~~~~~
 
 If a connection to a node fails due to connection issues (raises
-:class:`~loudml.ConnectionError`) it is considered in faulty state. It
+:class:`~loudml_py.ConnectionError`) it is considered in faulty state. It
 will be placed on hold for ``dead_timeout`` seconds and the request will be
 retried on another node. If a connection fails multiple times in a row the
 timeout will get progressively larger to avoid hitting a node that's, by all
@@ -88,7 +88,7 @@ indication, down. If no live connection is available, the connection that has
 the smallest timeout will be used.
 
 By default retries are not triggered by a timeout
-(:class:`~loudml.ConnectionTimeout`), set ``retry_on_timeout`` to
+(:class:`~loudml_py.ConnectionTimeout`), set ``retry_on_timeout`` to
 ``True`` to also retry on timeouts.
 
 .. _sniffing:
@@ -98,11 +98,11 @@ Sniffing
 
 The client can be configured to inspect the cluster state to get a list of
 nodes upon startup, periodically and/or on failure. See
-:class:`~loudml.Transport` parameters for details.
+:class:`~loudml_py.Transport` parameters for details.
 
 Some example configurations::
 
-    from loudml.client import Loud
+    from loudml_py.client import Loud
 
     # by default we don't sniff, ever
     loud = Loud()
@@ -147,7 +147,7 @@ SSL and Authentication
 You can configure the client to use ``SSL`` for connecting to your
 loudml cluster, including certificate verification and HTTP auth::
 
-    from loudml.client import Loud
+    from loudml_py.client import Loud
 
     # you can use RFC-1738 to specify the url
     loud = Loud(['https://user:secret@localhost:443'])
@@ -182,7 +182,7 @@ loudml cluster, including certificate verification and HTTP auth::
     be picked up automatically.
 
 
-See class :class:`~loudml.Urllib3HttpConnection` for detailed
+See class :class:`~loudml_py.Urllib3HttpConnection` for detailed
 description of the options.
 
 .. _certifi: http://certifiio.readthedocs.io/en/latest/
@@ -215,10 +215,10 @@ your configuration this might be something you don't want or break completely.
 
 In some environments (notably on Google App Engine) your HTTP requests might be
 restricted so that ``GET`` requests won't accept body. In that case use the
-``send_get_body_as`` parameter of :class:`~loudml.Transport` to send all
+``send_get_body_as`` parameter of :class:`~loudml_py.Transport` to send all
 bodies via post::
 
-    from loudml.client import Loud
+    from loudml_py.client import Loud
     loud = Loud(send_get_body_as='POST')
 
 Compression
@@ -227,7 +227,7 @@ When using capacity-constrained networks (low throughput), it may be handy to en
 compression. This is especially useful when doing bulk loads or inserting large
 documents. This will configure compression::
 
-   from loudml.client import Loud
+   from loudml_py.client import Loud
    loud = Loud(hosts, http_compress=True)
 
 
@@ -237,7 +237,7 @@ Running on AWS with IAM
 If you want to use this client with IAM based authentication on AWS you can use
 the `requests-aws4auth`_ package::
 
-    from loudml import Loud, RequestsHttpConnection
+    from loudml_py import Loud, RequestsHttpConnection
     from requests_aws4auth import AWS4Auth
 
     host = 'YOURHOST.us-east-1.es.amazonaws.com'
@@ -263,7 +263,7 @@ Custom serializers
 By default, `JSONSerializer`_ is used to encode all outgoing requests.
 However, you can implement your own custom serializer::
 
-   from loudml.serializer import JSONSerializer
+   from loudml_py.serializer import JSONSerializer
 
    class SetEncoder(JSONSerializer):
        def default(self, obj):
@@ -275,7 +275,7 @@ However, you can implement your own custom serializer::
 
    loud = Loud(serializer=SetEncoder())
 
-.. _JSONSerializer: https://github.com/loudml/loudml-python/blob/master/loudml/serializer.py#L24
+.. _JSONSerializer: https://github.com/loudml/loudml-python/blob/master/loudml_py/serializer.py#L24
 
 Contents
 --------

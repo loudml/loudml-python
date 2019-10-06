@@ -1,13 +1,13 @@
-from loudml.utils import (
+from loudml_py.utils import (
     NamespacedClient, query_params, _make_path, SKIP_IN_PATH
 )
-from loudml.errors import TransportError
+from loudml_py.errors import TransportError
 
 
-class ScheduledJobsClient(NamespacedClient):
+class TemplatesClient(NamespacedClient):
     def generator(
         self,
-        scheduled_job_names=None,
+        template_names=None,
         fields=None,
         include_fields=None,
         sort='name:1',
@@ -16,15 +16,15 @@ class ScheduledJobsClient(NamespacedClient):
         page = 0
         while True:
             found = 0
-            for scheduled_job in self.get(
-                scheduled_job_names=scheduled_job_names,
+            for template in self.get(
+                template_names=template_names,
                 fields=fields,
                 include_fields=include_fields,
                 sort=sort,
                 per_page=per_page,
                 page=page,
             ):
-                yield scheduled_job
+                yield template
                 found += 1
 
             page += 1
@@ -33,25 +33,25 @@ class ScheduledJobsClient(NamespacedClient):
 
     @query_params('fields', 'include_fields', 'page', 'per_page', 'sort')
     def get(
-        self, scheduled_job_names=None, params=None
+        self, template_names=None, params=None
     ):
         return self.transport.perform_request('GET', _make_path(
-            'scheduled_jobs', scheduled_job_names), params=params)
+            'templates', template_names), params=params)
 
     @query_params()
     def exists(
-        self, scheduled_job_name, params=None
+        self, template_name, params=None
     ):
-        if scheduled_job_name in SKIP_IN_PATH:
+        if template_name in SKIP_IN_PATH:
             raise ValueError(
-                "Empty value passed for a required argument 'scheduled_job_name'.")
+                "Empty value passed for a required argument 'template_name'.")
         try:
             return self.transport.perform_request('HEAD', _make_path(
-                'scheduled_jobs', scheduled_job_name), params=params)
+                'templates', template_name), params=params)
         except TransportError:
             return False
 
-    @query_params()
+    @query_params('name')
     def create(
         self, settings, params=None
     ):
@@ -59,14 +59,14 @@ class ScheduledJobsClient(NamespacedClient):
             if param in SKIP_IN_PATH:
                 raise ValueError("Empty value passed for a required argument.")
         return self.transport.perform_request(
-            'POST', '/scheduled_jobs', params=params, body=settings)
+            'POST', '/templates', params=params, body=settings)
 
     @query_params()
     def delete(
-        self, scheduled_job_name, params=None
+        self, template_name, params=None
     ):
-        if scheduled_job_name in SKIP_IN_PATH:
+        if template_name in SKIP_IN_PATH:
             raise ValueError(
-                "Empty value passed for a required argument 'scheduled_job_name'.")
+                "Empty value passed for a required argument 'template_name'.")
         return self.transport.perform_request('DELETE', _make_path(
-            'scheduled_jobs', scheduled_job_name), params=params)
+            'templates', template_name), params=params)

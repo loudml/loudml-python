@@ -26,13 +26,13 @@ Ignore
 
 An API call is considered successful (and will return a response) if
 loudml returns a 2XX response. Otherwise an instance of
-:class:`~loudml.TransportError` (or a more specific subclass) will be
+:class:`~loudml_py.TransportError` (or a more specific subclass) will be
 raised. You can see other exception and error states in :ref:`exceptions`. If
 you do not wish an exception to be raised you can always pass in an ``ignore``
 parameter with either a single status code that should be ignored or a list of
 them::
 
-    from loudml import Loud
+    from loudml_py import Loud
     loud = Loud()
 
     # ignore 404 and and 400 when deleting a model
@@ -43,7 +43,7 @@ Timeout
 ~~~~~~~
 
 Global timeout can be set when constructing the client (see
-:class:`~loudml.Connection`'s ``timeout`` parameter) or on a per-request
+:class:`~loudml_py.Connection`'s ``timeout`` parameter) or on a per-request
 basis using ``request_timeout`` (float value in seconds) as part of any API
 call, this value will get passed to the ``perform_request`` method of the
 connection class::
@@ -58,7 +58,7 @@ connection class::
     request will end in the specified time.
 
 
-.. py:module:: loudml
+.. py:module:: loudml_py
 
 Response Filtering
 ~~~~~~~~~~~~~~~~~~
@@ -76,7 +76,7 @@ Loud
 .. autoclass:: Loud
       :members:
 
-.. py:module:: loudml
+.. py:module:: loudml_py
 
 Models
 ------

@@ -1,7 +1,7 @@
-from loudml.utils import (
+from loudml_py.utils import (
     NamespacedClient, query_params, _make_path, SKIP_IN_PATH
 )
-from loudml.errors import TransportError
+from loudml_py.errors import TransportError
 
 
 class ModelVersionsClient(NamespacedClient):

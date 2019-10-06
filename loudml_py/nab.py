@@ -7,7 +7,7 @@ import urllib
 import io
 import os
 
-from loudml.misc import (
+from loudml_py.misc import (
     make_ts,
 )
 

@@ -6,8 +6,8 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from loudml.errors import SerializationError, ImproperlyConfigured
-from loudml.utils import string_types
+from loudml_py.errors import SerializationError, ImproperlyConfigured
+from loudml_py.utils import string_types
 
 
 class TextSerializer(object):

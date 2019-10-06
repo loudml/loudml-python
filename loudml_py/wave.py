@@ -5,7 +5,7 @@ import time
 import requests
 import sys
 
-from loudml.randevents import (
+from loudml_py.randevents import (
     CamelEventGenerator,
     LoudMLEventGenerator,
     FlatEventGenerator,
@@ -13,13 +13,13 @@ from loudml.randevents import (
     SinEventGenerator,
     TriangleEventGenerator,
 )
-from loudml.errors import (
+from loudml_py.errors import (
    LoudMLException,
 )
-from loudml.client import (
+from loudml_py.client import (
     Loud,
 )
-from loudml.misc import (
+from loudml_py.misc import (
     make_datetime,
 )
 

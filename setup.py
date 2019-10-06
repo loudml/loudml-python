@@ -5,10 +5,10 @@ from setuptools import setup, find_packages
 
 
 def find_version():
-    """Get version from loudml/_version.py"""
+    """Get version from loudml_py/_version.py"""
     _locals = locals()
     src_dir = os.path.abspath(os.path.dirname(__file__))
-    version_file = os.path.join(src_dir, 'loudml', '_version.py')
+    version_file = os.path.join(src_dir, 'loudml_py', '_version.py')
     with io_open(version_file, mode='r') as fd:
         exec(fd.read())  # __version__ is set in the exec call.
         return _locals['__version__']
@@ -55,8 +55,8 @@ setup(
     url='https://github.com/loudml/loudml-python',
     entry_points={
         'console_scripts': [
-            'loudml=loudml.cli:main',
-            'loudml-wave=loudml.wave:main',
+            'loudml=loudml_py.cli:main',
+            'loudml-wave=loudml_py.wave:main',
         ],
     },
 )

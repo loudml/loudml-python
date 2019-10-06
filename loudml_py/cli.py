@@ -15,23 +15,23 @@ import readline  # noqa: must be loaded (shlex requirement)
 import shlex
 from tqdm import tqdm
 
-from loudml.client import (
+from loudml_py.client import (
     Loud,
 )
-from loudml.errors import (
+from loudml_py.errors import (
    LoudMLException,
    TransportError,
    ConnectionError,
    ConnectionTimeout,
 )
-from loudml.misc import (
+from loudml_py.misc import (
     parse_constraint,
     parse_addr,
     format_jobs,
     format_buckets,
     format_model_versions,
 )
-from loudml.nab import load_nab
+from loudml_py.nab import load_nab
 
 
 def poll_job(job):

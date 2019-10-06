@@ -54,7 +54,7 @@ and run queries.
 
 .. code-block:: pycon
 
-    >>> from loudml.client import Loud
+    >>> from loudml_py.client import Loud
     >>> loud = Loud(hosts=['localhost:8077'])
     >>> models = loud.models.get(
             model_names=['first_model'],

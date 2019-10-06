@@ -4,7 +4,7 @@ try:
 except ImportError:
     import json
 
-from loudml.errors import TransportError, HTTP_EXCEPTIONS
+from loudml_py.errors import TransportError, HTTP_EXCEPTIONS
 
 logger = logging.getLogger('loudml')
 

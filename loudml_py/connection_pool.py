@@ -8,7 +8,7 @@ try:
 except ImportError:
     from queue import PriorityQueue, Empty
 
-from loudml.errors import ImproperlyConfigured
+from loudml_py.errors import ImproperlyConfigured
 
 logger = logging.getLogger('loudml')
 

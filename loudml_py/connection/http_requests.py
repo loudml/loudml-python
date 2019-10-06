@@ -2,8 +2,8 @@ import time
 import warnings
 import requests
 
-from loudml.connection.base import Connection
-from loudml.errors import (
+from loudml_py.connection.base import Connection
+from loudml_py.errors import (
     ConnectionError,
     ImproperlyConfigured,
     ConnectionTimeout,

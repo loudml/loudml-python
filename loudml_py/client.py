@@ -4,18 +4,18 @@ from urllib.parse import (
     quote,
     unquote,
 )
-from loudml.utils import (
+from loudml_py.utils import (
     string_types,
     query_params,
 )
-from loudml.misc import format_points
-from loudml.transport import Transport
-from loudml.errors import TransportError
-from loudml.jobs import JobsClient
-from loudml.scheduled_jobs import ScheduledJobsClient
-from loudml.models import ModelsClient
-from loudml.templates import TemplatesClient
-from loudml.buckets import BucketsClient
+from loudml_py.misc import format_points
+from loudml_py.transport import Transport
+from loudml_py.errors import TransportError
+from loudml_py.jobs import JobsClient
+from loudml_py.scheduled_jobs import ScheduledJobsClient
+from loudml_py.models import ModelsClient
+from loudml_py.templates import TemplatesClient
+from loudml_py.buckets import BucketsClient
 
 
 def _normalize_hosts(hosts):
@@ -156,7 +156,7 @@ class Loud():
     is used to encode all outgoing requests.
     However, you can implement your own custom serializer::
 
-        from loudml.serializer import JSONSerializer
+        from loudml_py.serializer import JSONSerializer
 
         class SetEncoder(JSONSerializer):
             def default(self, obj):
