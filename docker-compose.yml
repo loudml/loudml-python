@@ -1,0 +1,23 @@
+version: '2'
+services:
+  loudml:
+    image: loudml/loudml:latest-devel
+    ports:
+      - "8077:8077"
+  tox:
+    build:
+      dockerfile: ci/Dockerfile
+      context: .
+    depends_on:
+      - loudml
+    environment:
+      LOUDML_HOSTS: loudml:8077
+    command: >
+      /bin/bash -c "
+        pyenv versions
+        cd /app
+        dockerize \
+           -wait tcp://loudml:8077 \
+           -timeout 10s \
+           tox
+      "
