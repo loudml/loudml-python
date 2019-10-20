@@ -121,5 +121,7 @@ class Connection(object):
                     error_message = error_message['type']
         except (ValueError, TypeError) as err:
             logger.warning('Undecodable raw error response from server: %s', err)
+        except AttributeError:
+            error_message = additional_info
 
         raise HTTP_EXCEPTIONS.get(status_code, TransportError)(status_code, error_message, additional_info)
