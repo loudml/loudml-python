@@ -260,3 +260,17 @@ class Loud():
         ):
             job = self.jobs.id(job_name)
             job.wait(interval)
+
+    async def async_write_points(
+        self, bucket_name, points, verbose=False, interval=1
+    ):
+        if verbose:
+            for line in format_points(points):
+                print(line)
+        for job_name in self.buckets.write(
+            bucket_name=bucket_name,
+            points=points,
+            batch_size=len(points),
+        ):
+            job = self.jobs.id(job_name)
+            await job.async_wait(interval)

@@ -13,6 +13,7 @@ import time
 import math
 import readline  # noqa: must be loaded (shlex requirement)
 import shlex
+import asyncio
 from tqdm import tqdm
 
 from loudml_py.client import (
@@ -111,14 +112,14 @@ class Command:
         Declare command arguments
         """
 
-    def exec(self, args):
+    async def exec(self, args):
         """
         Execute command
         """
         if getattr(args, 'model_name') == '*':
             return self.exec_all(args)
 
-    def exec_all(self, args):
+    async def exec_all(self, args):
         """
         Execute command
         """
@@ -161,7 +162,7 @@ class LoadVersionCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.models.versions.load(
             model_name=args.model_name, version=args.version_name)
@@ -186,7 +187,7 @@ class ListVersionsCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.show_all:
             include_fields = None
@@ -258,7 +259,7 @@ class CreateModelCommand(Command):
 
         return settings
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.template_name is not None:
             settings = self._load_model_json(args.model_file)
@@ -295,7 +296,7 @@ class CreateTemplateCommand(CreateModelCommand):
             action='store_true',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         settings = self._load_model_json(args.model_file)
 
@@ -319,7 +320,7 @@ class DeleteTemplateCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.templates.delete(args.template_name)
 
@@ -338,7 +339,7 @@ class ListTemplatesCommand(Command):
             dest='show_all',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         templates = loud.templates.get()
         if args.show_all:
@@ -354,7 +355,7 @@ class ListJobsCommand(Command):
     def short_name(self):
         return 'list-jobs'
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         jobs = list(
             loud.jobs.generator(
@@ -379,7 +380,7 @@ class CancelJobCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.jobs.cancel_jobs(
             job_names=[args.job_id])
@@ -427,7 +428,7 @@ class CreateScheduledJobCommand(Command):
 
         return settings
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         settings = self.load_scheduled_job_file(args.scheduled_job_file)
 
@@ -451,7 +452,7 @@ class DeleteScheduledJobCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.scheduled_jobs.delete(args.scheduled_job_name)
 
@@ -470,7 +471,7 @@ class ListScheduledJobsCommand(Command):
             dest='show_all',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.show_all:
             scheduled_jobs = list(
@@ -538,7 +539,7 @@ class CreateBucketCommand(Command):
 
         return settings
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         settings = self.load_bucket_file(args.bucket_file)
 
@@ -562,7 +563,7 @@ class ListBucketsCommand(Command):
             dest='show_all',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.show_all:
             buckets = list(
@@ -593,7 +594,7 @@ class DeleteBucketCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.buckets.delete(args.bucket_name)
 
@@ -611,7 +612,7 @@ class ShowBucketCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         buckets = loud.buckets.get(
             bucket_names=[args.bucket_name],
@@ -666,7 +667,7 @@ class ReadBucketCommand(Command):
             action='store_true',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         if not args.from_date:
             raise LoudMLException(
                 "'from' argument is required")
@@ -717,7 +718,7 @@ class WriteBucketCommand(Command):
             default=1000,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.data:
             fd = open(args.data)
@@ -759,7 +760,7 @@ class ClearBucketCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.buckets.clear(
             bucket_name=args.bucket_name,
@@ -780,7 +781,7 @@ class ListModelsCommand(Command):
             dest='show_all',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.show_all:
             models = list(
@@ -811,7 +812,7 @@ class DeleteModelCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.models.delete(args.model_name)
 
@@ -829,7 +830,7 @@ class StartModelCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.models.start_inference(
             model_names=[args.model_name],
@@ -850,7 +851,7 @@ class StopModelCommand(Command):
             type=str,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         loud.models.stop_inference(model_names=[args.model_name])
 
@@ -874,7 +875,7 @@ class ShowModelCommand(Command):
             dest='show_all',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         if args.show_all:
             include_fields = None
@@ -939,7 +940,7 @@ class PlotCommand(Command):
             default=None,
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         _ = loud.models.get_latent_data(
             model_name=args.model_name,
@@ -998,7 +999,7 @@ class TrainCommand(Command):
             dest='resume_training',
         )
 
-    def exec_all(self, args):
+    async def exec_all(self, args):
         loud = Loud(**self.config)
         for model in loud.models.generator(
             fields=['settings'],
@@ -1007,7 +1008,7 @@ class TrainCommand(Command):
             args.model_name = model['settings']['name']
             self.exec(args)
 
-    def exec(self, args):
+    async def exec(self, args):
         if args.model_name == '*':
             return self.exec_all(args)
         if not args.from_date:
@@ -1095,7 +1096,7 @@ class ForecastCommand(Command):
             help="Save predictions to the output bucket",
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         if not args.from_date:
             raise LoudMLException(
                 "'from' argument is required")
@@ -1179,7 +1180,7 @@ class EvalModelCommand(Command):
             help="Save predictions to the output bucket",
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         if not args.from_date:
             raise LoudMLException(
                 "'from' argument is required")
@@ -1234,9 +1235,9 @@ class LoadNabCommand(Command):
             default='now-30d',
         )
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
-        load_nab(
+        await load_nab(
             loud=loud,
             bucket_name=args.bucket_name,
             batch_size=args.batch_size,
@@ -1249,7 +1250,7 @@ class ShowVersionCommand(Command):
     def short_name(self):
         return 'version'
 
-    def exec(self, args):
+    async def exec(self, args):
         loud = Loud(**self.config)
         print(loud.version())
 
@@ -1260,7 +1261,7 @@ class HelpCommand(Command):
     def short_name(self):
         return 'help'
 
-    def exec(self, args):
+    async def exec(self, args):
         global g_commands
         for command in g_commands:
             cmd = command()
@@ -1275,7 +1276,7 @@ class QuitCommand(Command):
     def short_name(self):
         return 'quit'
 
-    def exec(self, args):
+    async def exec(self, args):
         raise SystemExit()
 
 
@@ -1342,7 +1343,7 @@ def cmd_gen(args):
                 yield r
 
 
-def main(argv=None):
+async def main_loop(argv=None):
     """
     The Python client interface to Loud ML model servers.
     """
@@ -1420,7 +1421,7 @@ Examples:
                 continue
 
             try:
-                shell_args.exec(shell_args)
+                await shell_args.exec(shell_args)
                 exit_code = 0
             except ConnectionTimeout:
                 logging.error("Connection timed out")
@@ -1438,3 +1439,9 @@ Examples:
         logging.error("operation aborted")
 
     return 1
+
+
+def main(argv=None):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main_loop(argv))
+    loop.close()

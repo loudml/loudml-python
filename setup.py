@@ -28,6 +28,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
+        'aiohttp>=3.6.2',
         'requests>=2.14.0',
         'pyyaml==5.1.2',
         'tqdm>=4.35.0',
