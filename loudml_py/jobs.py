@@ -3,6 +3,7 @@ from loudml_py.utils import (
 )
 from loudml_py.errors import TransportError
 import time
+import asyncio
 
 
 class JobClient(NamespacedClient):
@@ -106,6 +107,13 @@ class JobClient(NamespacedClient):
     def wait(self, interval, callback=None):
         while not self.done():
             time.sleep(interval)
+            self.fetch()
+            if callback:
+                callback()
+
+    async def async_wait(self, interval, callback=None):
+        while not self.done():
+            await asyncio.sleep(interval)
             self.fetch()
             if callback:
                 callback()

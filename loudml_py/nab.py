@@ -1,16 +1,18 @@
-import requests
 import csv
 from tqdm import tqdm
-from multiprocessing import Pool
 from functools import partial
 import urllib
 import io
 import os
+import asyncio
+import aiohttp
+import async_timeout
 
 from loudml_py.misc import (
     make_ts,
 )
 
+g_sem = asyncio.Semaphore(10)
 
 g_base_url = 'https://raw.githubusercontent.com/{}'.format(
     'numenta/NAB/master/data/')
@@ -57,16 +59,30 @@ g_urls = [
 ]
 
 
-def _load_url(
-    loud, bucket_name, batch_size, from_date, num,
+async def download_file(session, url):
+    try:
+        async with g_sem:  # max running in parallel
+            with async_timeout.timeout(10):
+                async with session.get(url) as remotefile:
+                    if remotefile.status == 200:
+                        data = await remotefile.read()
+                        return None, data
+                    else:
+                        return remotefile.status, None
+    except Exception as e:
+        return e, None
+
+
+async def _load_url(
+    loud, bucket_name, batch_size, from_date, session, url,
 ):
     global g_base_url
     global g_urls
 
     from_ts = make_ts(from_date)
-    url = urllib.parse.urljoin(g_base_url, g_urls[num])
-    r = requests.get(url)
-    content = io.StringIO(r.content.decode('utf-8'))
+    url = urllib.parse.urljoin(g_base_url, url)
+    error, data = await download_file(session, url)
+    content = io.StringIO(data.decode('utf-8'))
     csv_reader = csv.reader(content, delimiter=',')
     next(csv_reader, None)  # skip the header
     tag_val = os.path.basename(os.path.splitext(url)[0])
@@ -89,18 +105,29 @@ def _load_url(
         }
         points.append(point)
         if len(points) >= batch_size:
-            loud.write_points(
+            await loud.async_write_points(
                 bucket_name, points, verbose=False)
             points.clear()
 
     if len(points):
-        loud.write_points(bucket_name, points, verbose=False)
+        await loud.async_write_points(bucket_name, points, verbose=False)
 
 
-def load_nab(loud, bucket_name, batch_size, from_date):
+async def load_nab(loud, bucket_name, batch_size, from_date):
     global g_urls
 
     load = partial(_load_url, loud, bucket_name, batch_size, from_date)
-    with Pool() as p:
-        _ = list(tqdm(
-            p.imap(load, range(len(g_urls))), total=len(g_urls)))
+    pbar = tqdm(total=len(g_urls))
+
+    async def load_and_update(session, url):
+        await load(session, url)
+        pbar.update()
+
+    con = aiohttp.TCPConnector(limit=10)
+    loop = asyncio.get_event_loop()
+    async with aiohttp.ClientSession(loop=loop, connector=con) as session:
+        tasks = [
+            asyncio.ensure_future(load_and_update(session, url))
+            for url in g_urls
+        ]
+        return await asyncio.gather(*tasks)
