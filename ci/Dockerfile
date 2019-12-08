@@ -43,9 +43,6 @@ RUN useradd user
 
 WORKDIR /app
 
-COPY tox.ini setup.py requirements.txt README.rst ./
-COPY loudml_py/ ./loudml_py/
-
 RUN chown -R user:user /app /home/user
 
 RUN pip install tox

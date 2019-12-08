@@ -1,0 +1,7 @@
+# Ignore
+.git
+.gitignore
+.circleci
+Dockerfile
+build
+venv
