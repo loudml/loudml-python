@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
         settings = {
             'name': cls.bucket_name,
             'type': 'influxdb',
-            'addr': 'localhost:8086',
+            'addr': os.environ.get('INFLUXDB_ADDR', 'localhost:8086'),
             'database': 'nose',
             'retention_policy': 'autogen',
             'measurement': 'loudml'
@@ -99,7 +99,7 @@ class Test(unittest.TestCase):
         new_settings = {
             'name': bucket_name,
             'type': 'influxdb',
-            'addr': 'localhost:8086',
+            'addr': os.environ.get('INFLUXDB_ADDR', 'localhost:8086'),
             'database': 'telegraf',
             'retention_policy': 'autogen',
             'measurement': 'loudml'
