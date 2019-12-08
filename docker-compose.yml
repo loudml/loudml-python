@@ -1,23 +1,30 @@
 version: '2'
 services:
+  influxdb:
+    image: influxdb:latest
+    ports:
+      - "8086:8086"
   loudml:
     image: loudml/loudml:latest-devel
     ports:
       - "8077:8077"
   tox:
-    build:
-      dockerfile: ci/Dockerfile
-      context: .
+    image: loudml/ci:tox
     depends_on:
+      - influxdb
       - loudml
+    volumes:
+      - .:/app
     environment:
       LOUDML_HOSTS: loudml:8077
+      INFLUXDB_ADDR: influxdb:8086
+    user: "1000:1000"
     command: >
       /bin/bash -c "
         pyenv versions
         cd /app
         dockerize \
            -wait tcp://loudml:8077 \
-           -timeout 10s \
+           -timeout 30s \
            tox
       "
