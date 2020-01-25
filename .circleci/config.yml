@@ -1,6 +1,8 @@
 version: 2.1
+
 orbs:
   codecov: codecov/codecov@1.0.2
+  sonarcloud: sonarsource/sonarcloud@1.0.1
 
 jobs:
   python_3:
@@ -18,9 +20,11 @@ jobs:
 
       - codecov/upload:
           file: coverage.xml
+      - sonarcloud/scan
 
 workflows:
   version: 2
   build:
     jobs:
-      - python_3
+      - python_3:
+          context: org-global
