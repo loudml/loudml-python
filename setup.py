@@ -30,7 +30,7 @@ setup(
     install_requires=[
         'aiohttp>=3.6.2',
         'requests>=2.14.0',
-        'pyyaml==5.1.2',
+        'pyyaml==5.4.1',
         'tqdm>=4.35.0',
         'pytz>=2019.2',
         'dateutils>=0.6.6',
